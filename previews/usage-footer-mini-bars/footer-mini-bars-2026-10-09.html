@@ -1,0 +1,1144 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Footer mini bars</title>
+<style>
+:root {
+  color-scheme: dark;
+  --page: #0f0f10;
+  --term: #171717;
+  --panel: #1b1b1d;
+  --line: #2c2c30;
+  --ink: #e8e8ea;
+  --soft: #a3a3aa;
+  --faint: #74747c;
+  --accent: #8fb8ff;
+  --good: #7fd88f;
+  --bad: #ff7b7b;
+  --mono: "SF Mono", ui-monospace, Menlo, monospace;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--page); color: var(--ink); font: 14px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+body { height: 100vh; overflow: hidden; display: grid; grid-template-rows: auto auto auto minmax(0, 1fr); }
+header { display: flex; align-items: baseline; gap: 14px; padding: 12px 22px 6px; flex-wrap: wrap; }
+h1 { font-size: 21px; margin: 0; font-weight: 650; letter-spacing: -0.2px; }
+.date { color: var(--faint); font-size: 13px; }
+nav { display: flex; gap: 6px; padding: 4px 22px 8px; flex-wrap: wrap; }
+nav button { background: var(--panel); color: var(--soft); border: 1px solid var(--line); border-radius: 999px; padding: 5px 14px; font: inherit; cursor: pointer; }
+nav button[aria-selected="true"] { background: var(--ink); color: #111; border-color: var(--ink); font-weight: 600; }
+.controls { display: flex; align-items: center; gap: 8px 18px; padding: 7px 22px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); flex-wrap: wrap; background: #131315; min-height: 41px; }
+.controls .group { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.controls .group[hidden] { display: none; }
+.controls label { color: var(--faint); font-size: 12px; text-transform: uppercase; letter-spacing: 0.6px; margin-right: 2px; }
+.chip { background: transparent; color: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 2px 8px; font: 12.5px -apple-system, sans-serif; cursor: pointer; }
+.chip[aria-pressed="true"] { background: #2a3550; color: #dfe8ff; border-color: #3d5383; }
+input[type=range] { width: 170px; accent-color: var(--accent); }
+.cols { font: 600 14px var(--mono); min-width: 74px; }
+main { overflow: auto; padding: 10px 22px 14px; scrollbar-width: none; }
+main::-webkit-scrollbar { display: none; }
+section[hidden] { display: none; }
+.lede { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; margin: 0 0 6px; max-width: 1500px; font-size: 13.5px; }
+.lede p { margin: 0; color: var(--soft); }
+.lede b { color: var(--ink); }
+h2 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.7px; color: var(--faint); margin: 12px 0 5px; font-weight: 600; }
+h2 .note { text-transform: none; letter-spacing: 0; font-weight: 400; margin-left: 8px; }
+h2.yours { color: var(--accent); }
+.term { background: var(--term); border: 1px solid #262629; border-radius: 8px; padding: 6px 10px; max-width: 100%; overflow: hidden; }
+.term canvas { display: block; max-width: 100%; height: auto; }
+.pair { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 4px 10px; }
+.pair .who { font-size: 12px; color: var(--soft); text-align: right; line-height: 1.2; }
+.pair .who small { display: block; color: var(--faint); font-size: 11px; }
+.pair .who.new { color: var(--good); }
+.caps { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 3px 12px; align-items: center; }
+.caps .lbl { font: 600 12px var(--mono); color: var(--soft); text-align: right; }
+.caps .lbl.yours { color: var(--accent); }
+.ladder { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 14px; align-items: center; }
+.ladder .w { font: 600 12px var(--mono); color: var(--soft); text-align: right; white-space: nowrap; }
+.ladder .w.yours { color: var(--accent); }
+.ladder .w small { font: 400 11.5px -apple-system, sans-serif; color: var(--faint); margin-left: 8px; display: inline-block; min-width: 220px; text-align: left; }
+.ladder .right { display: flex; justify-content: flex-end; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+.card h3 { margin: 0 0 6px; font-size: 15px; }
+.bullets { margin: 0; padding-left: 18px; color: var(--soft); }
+.bullets li { margin: 2px 0; }
+.bullets b { color: var(--ink); }
+.two { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 22px; max-width: 1500px; align-items: start; }
+table { border-collapse: collapse; font-size: 13px; width: 100%; }
+th, td { text-align: left; padding: 4px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { color: var(--faint); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; }
+td.w { font-family: var(--mono); color: var(--soft); }
+td.lost { color: var(--bad); }
+td.ok { color: var(--soft); }
+td.new { color: var(--good); }
+tr.yours td { background: #172033; }
+.real { font-size: 12px; color: var(--faint); margin: 10px 0 0; max-width: 1500px; }
+.real b { color: var(--soft); font-weight: 600; }
+@media (max-width: 900px) {
+  .lede, .two { grid-template-columns: 1fr; }
+  body { height: auto; overflow: auto; }
+  main { overflow: visible; }
+  .pair { grid-template-columns: 1fr; }
+  .pair .who { text-align: left; }
+  .ladder .w small { display: block; margin: 0; min-width: 0; }
+  th, td { white-space: normal; padding: 4px 6px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Footer: Mini bars</h1>
+  <span class="date">9 Oct 2026 · preview before building · every row is drawn by the add-on's own code (today's 0.5.0 and the new 0.6.0), or captured from a real Claude Code window</span>
+</header>
+<nav role="tablist">
+  <button role="tab" data-tab="before">1 · Before → after</button>
+  <button role="tab" data-tab="bars">2 · Mini bars, any width</button>
+  <button role="tab" data-tab="real">3 · In a real Claude Code</button>
+  <button role="tab" data-tab="rules">4 · How it shrinks</button>
+</nav>
+<div class="controls">
+  <div class="group" id="widthGroup"><label>Window</label>
+    <input type="range" id="width" min="100" max="200" step="1" value="120" aria-label="Window width in columns">
+    <span class="cols" id="colsOut">120 cols</span>
+    <button class="chip" data-width="120">120 · smallest</button>
+    <button class="chip" data-width="149">149</button>
+    <button class="chip" data-width="177">177</button>
+  </div>
+  <div class="group" id="momentGroup"><label>Moment</label>
+    <button class="chip" data-moment="rest">At rest</button>
+    <button class="chip" data-moment="working">Working</button>
+    <button class="chip" data-moment="shell">Background shell</button>
+    <button class="chip" data-moment="reply">Reply just finished</button>
+    <button class="chip" data-moment="compact">Just compacted</button>
+  </div>
+  <div class="group" id="sampleGroup"><label>Numbers</label><span id="samples"></span></div>
+  <div class="group" id="realGroup" hidden><label>Captured</label><span style="color:var(--soft);font-size:12.5px" id="realNote"></span></div>
+</div>
+<main>
+  <section data-panel="before">
+    <div class="lede">
+      <p><b>Why it shrinks so early today.</b> Claude Code's own text on the left (“⏵⏵ bypass permissions on (shift+tab to cycle) · esc to interrupt”) gets 66 of your 120 columns, so the row has about 51. Today's tiles pad every name to 5 columns, every percent to 4, and put “ │ ” between tiles. So at 120 the lamps are gone, and with a background shell running one gauge is hidden behind “+1”.</p>
+      <p><b>Mini bars</b> keep the same parts in a smaller space: the name, a short smooth bar (each cell fills in eighths, so 2 cells still show 16 steps), a 3-column percent, then the reset time when there is room. At 120, all four gauges keep their bars (46 columns), even with a background shell. Same colours, same order, same motion as today. “week” becomes “wk”, and 100% shows as “max”.</p>
+    </div>
+    <div id="beforeAfter"></div>
+  </section>
+
+  <section data-panel="bars" hidden>
+    <h2>At this width <span class="note" id="barsStep"></span></h2>
+    <div class="term" id="barsBig"></div>
+    <h2>Every width, same moment <span class="note">right edges lined up the way Claude Code places them · blue = your windows</span></h2>
+    <div class="term"><div class="ladder" id="barsAll"></div></div>
+  </section>
+
+  <section data-panel="real" hidden>
+    <div id="realCaps"></div>
+  </section>
+
+  <section data-panel="rules" hidden>
+    <div class="two">
+      <div>
+        <h2>What each width shows <span class="note">bypass mode, your screenshot's numbers</span></h2>
+        <div class="card" style="padding:4px 6px"><table id="shrinkTable"></table></div>
+      </div>
+      <div>
+        <h2>Kept from today</h2>
+        <div class="card">
+          <ul class="bullets">
+            <li><b>Always one row</b>, never wider than the room the left text leaves, so Claude Code never pushes it onto a second row.</li>
+            <li><b>The same size whether Claude is working or not.</b> Room is kept for “· esc to interrupt”, and for wider left text once seen (a background shell).</li>
+            <li><b>One order</b> (ctx, 5h, wk, fable), and every gauge at the same step.</li>
+            <li><b>Narrower never shows more.</b> First the bars shorten (8 → 4 → 2 cells), then the times go, then the bars. Only after that does a gauge go, the calmest first, with <b>+n</b>.</li>
+            <li><b>Colours</b>: ctx blue, limits green, yellow when going faster than the clock, red at 90% or more. On the track, grey is time gone that you did not use, dark is still to come, and dark red is past where the context compacts.</li>
+            <li><b>Motion</b>: a light runs along the bars while Claude works; the last cell breathes at rest; a reply's new part flashes in.</li>
+          </ul>
+        </div>
+        <h2>What changes</h2>
+        <div class="card">
+          <ul class="bullets">
+            <li>Lamps (▊ with gaps) become <b>smooth bars</b> on a dark track, cut to the eighth of a cell.</li>
+            <li>No padding: names at their own length, a 3-column percent, 2 spaces between gauges instead of “ │ ”.</li>
+            <li><b>“week” → “wk”</b>. 100% and over shows as <b>max</b>, in red.</li>
+            <li>Only <b>row.ts</b> and a name in <b>limits.ts</b> change. The Fable reading, the room rule, /limits on | off and the timing are untouched.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+  <p class="real" id="realNoteBottom"><b>What is real here:</b> tabs 1, 2 and 4 run the add-on's own drawing code in this page (today's live 0.5.0 and the new 0.6.0) on the same numbers. Tab 3 is a real Claude Code (v2.1.295, Haiku, bypass mode) running a renamed copy of the new add-on, captured cell by cell. “Your screenshot” uses its four percents and the add-on's own reset times from this morning. The token count for ctx is not in the screenshot, so 46% of a 1M window (460k) is assumed. The other numbers are labelled examples. Terminal's own font draws the block cells; here they are painted as rectangles.</p>
+</main>
+
+<script>
+// Uint8Array.prototype.toBase64 is missing in some browsers; the add-on's encoder uses it.
+if (!Uint8Array.prototype.toBase64) {
+  Uint8Array.prototype.toBase64 = function () { let s = ''; for (let i = 0; i < this.length; i += 0x8000) s += String.fromCharCode.apply(null, this.subarray(i, i + 0x8000)); return btoa(s) }
+};
+</script>
+<script>
+(() => {
+  var __defProp = Object.defineProperty;
+  var __getOwnPropNames = Object.getOwnPropertyNames;
+  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+  var __hasOwnProp = Object.prototype.hasOwnProperty;
+  function __accessProp(key) {
+    return this[key];
+  }
+  var __toCommonJS = (from) => {
+    var entry = (__moduleCache ??= new WeakMap).get(from), desc;
+    if (entry)
+      return entry;
+    entry = __defProp({}, "__esModule", { value: true });
+    if (from && typeof from === "object" || typeof from === "function") {
+      for (var key of __getOwnPropNames(from))
+        if (!__hasOwnProp.call(entry, key))
+          __defProp(entry, key, {
+            get: __accessProp.bind(from, key),
+            enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
+          });
+    }
+    __moduleCache.set(from, entry);
+    return entry;
+  };
+  var __moduleCache;
+  var __returnValue = (v) => v;
+  function __exportSetter(name, newValue) {
+    this[name] = __returnValue.bind(null, newValue);
+  }
+  var __export = (target, all) => {
+    for (var name in all)
+      __defProp(target, name, {
+        get: all[name],
+        enumerable: true,
+        configurable: true,
+        set: __exportSetter.bind(all, name)
+      });
+  };
+
+  // src/entry.ts
+  var exports_entry = {};
+  __export(exports_entry, {
+    drawNew: () => drawNew,
+    drawToday: () => drawToday
+  });
+
+  // lamps-0.5.0/hooks/row.ts
+  var exports_row = {};
+  __export(exports_row, {
+    MODE_LABEL: () => MODE_LABEL,
+    STEPS: () => STEPS,
+    WORKING_HINT: () => WORKING_HINT,
+    drawRow: () => drawRow,
+    itemsOf: () => itemsOf,
+    leftOf: () => leftOf,
+    roomOf: () => roomOf,
+    tileOf: () => tileOf,
+    tokens: () => tokens
+  });
+
+  // lamps-0.5.0/hooks/art.ts
+  var DEFAULT = 16777216;
+  var grid = (columns, rows) => {
+    const words = new Uint32Array(columns * rows * 3);
+    for (let i = 0;i < columns * rows; i++) {
+      words[i * 3] = 32;
+      words[i * 3 + 1] = DEFAULT;
+      words[i * 3 + 2] = DEFAULT;
+    }
+    return { columns, rows, words };
+  };
+  var put = (g, x, y, glyph, color, back = DEFAULT) => {
+    if (x < 0 || y < 0 || x >= g.columns || y >= g.rows)
+      return;
+    const at = (y * g.columns + x) * 3;
+    g.words[at] = glyph.codePointAt(0) ?? 32;
+    g.words[at + 1] = color;
+    g.words[at + 2] = back;
+  };
+  var encode = (g) => ({
+    columns: g.columns,
+    rows: g.rows,
+    cells: new Uint8Array(g.words.buffer).toBase64()
+  });
+
+  // lamps-0.5.0/hooks/limits.ts
+  var HOUR = 3600000;
+  var DAY = 24 * HOUR;
+  var percent = (used) => `${used >= 100 ? Math.round(used) : Math.min(99, Math.round(used))}%`;
+  var clockText = (ms) => {
+    const minutes = Math.max(0, Math.round(ms / 60000));
+    if (minutes < 1)
+      return "<1m";
+    if (minutes < 60)
+      return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 10)
+      return `${hours}h ${minutes % 60}m`;
+    if (hours < 24)
+      return `${hours}h`;
+    return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+  };
+
+  // lamps-0.5.0/hooks/row.ts
+  var WHITE = 15658734;
+  var LABEL = 12369084;
+  var WORDS = 9737364;
+  var RULE = 5131854;
+  var GREEN = 6281055;
+  var GREEN_HI = 8912775;
+  var YELLOW = 16766815;
+  var YELLOW_HI = 16777095;
+  var RED = 16736095;
+  var RED_HI = 16746375;
+  var BLUE = 6270935;
+  var BLUE_HI = 11524095;
+  var ORANGE = 16756480;
+  var ORANGE_HI = 16766855;
+  var PURPLE = 11503615;
+  var PURPLE_HI = 14135295;
+  var SPARE = 7105644;
+  var AHEAD = 3815994;
+  var BUFFER = 6225920;
+  var COLOR = {
+    calm: [GREEN, GREEN_HI],
+    fast: [YELLOW, YELLOW_HI],
+    out: [RED, RED_HI],
+    context: [BLUE, BLUE_HI],
+    near: [YELLOW, YELLOW_HI],
+    nearer: [ORANGE, ORANGE_HI],
+    compacted: [PURPLE, PURPLE_HI]
+  };
+  var FLASH = 10;
+  var tokens = (n) => {
+    if (n < 1000)
+      return String(Math.round(n));
+    if (n < 1e5)
+      return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+    if (n < 1e6)
+      return `${Math.round(n / 1000)}k`;
+    return `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M`;
+  };
+  var limitItems = (scene) => scene.gauges.map((gauge) => {
+    const kind = gauge.pace?.kind;
+    const isOut = gauge.used >= 90 || kind === "reached";
+    const isFast = !isOut && kind === "fast";
+    const tone = isOut ? "out" : isFast ? "fast" : "calm";
+    const color = isOut ? RED : isFast ? YELLOW : WORDS;
+    const ms = isFast && gauge.pace?.leftMs !== undefined ? gauge.pace.leftMs : gauge.resetsIn;
+    const fact = gauge.resets === "new window" ? ["new", WORDS] : ms === undefined ? undefined : [clockText(ms), color];
+    return {
+      name: gauge.name,
+      share: Math.min(100, Math.max(0, gauge.shown)) / 100,
+      percent: percent(gauge.shown),
+      clock: gauge.time ?? 0,
+      since: 1e6,
+      tone,
+      isAlarm: isOut,
+      ...fact === undefined ? {} : { fact },
+      urgency: kind === "reached" ? 3000 : isOut ? 2000 + gauge.used : isFast ? 1000 + gauge.used : gauge.used
+    };
+  });
+  var UNKNOWN = { name: "ctx", share: 0, percent: "--", clock: 0, since: 1e6, tone: "context", isAlarm: false, urgency: -1 };
+  var contextItem = (scene) => {
+    const { reading } = scene;
+    if (reading === undefined)
+      return UNKNOWN;
+    const threshold = reading.threshold ?? reading.window;
+    const near = scene.shown / threshold;
+    const isShrunk = scene.since < FLASH * 3 && scene.shown < scene.before * 0.6;
+    const tone = isShrunk ? "compacted" : near >= 0.95 ? "out" : near >= 0.85 ? "nearer" : near >= 0.7 ? "near" : "context";
+    const share = Math.min(1, scene.shown / reading.window);
+    const factColor = tone === "context" ? WORDS : tone === "compacted" ? PURPLE : COLOR[tone][0];
+    return {
+      name: "ctx",
+      share,
+      percent: `${Math.min(100, Math.floor(share * 100))}%`,
+      clock: 0,
+      ...reading.threshold === undefined ? {} : { mark: reading.threshold / reading.window },
+      ...scene.before < scene.shown ? { grewFrom: scene.before / reading.window } : {},
+      since: scene.since,
+      tone,
+      isAlarm: near >= 0.95,
+      fact: [isShrunk ? "new" : tokens(scene.shown), factColor],
+      urgency: near >= 0.95 ? 2500 : near >= 0.85 ? 1500 + near * 100 : near >= 0.7 ? 1000 + near * 100 : near * 100
+    };
+  };
+  var itemsOf = (scene) => [contextItem(scene.context), ...limitItems(scene.limits)];
+  var isBusy = (mood) => mood === "working" || mood === "party";
+  var sweepOf = (mood, tick, length) => isBusy(mood) && length > 0 ? tick % (length + 6) - 1 : -9;
+  var isBlink = (item, tick) => item.isAlarm && (tick & 2) === 0;
+  var rowGrid = (columns) => Object.assign(grid(columns, 1), { parts: [] });
+  var text = (g, part, words, color) => {
+    const glyphs = [...words];
+    glyphs.forEach((glyph, i) => put(g, part.x + i, 0, glyph, color));
+    g.parts.push({ ...part, width: glyphs.length });
+  };
+  var done = (g, step, shown, of) => ({ ...encode(g), parts: g.parts, step, shown, of });
+  var unitsOf = (item, units) => ({
+    lit: item.share > 0.005 ? Math.max(1, Math.round(item.share * units)) : 0,
+    clock: Math.round(item.clock * units),
+    mark: item.mark === undefined ? units : Math.min(units, Math.ceil(item.mark * units - 0.5)),
+    grewFrom: item.grewFrom === undefined ? units : Math.floor(item.grewFrom * units)
+  });
+  var litColor = (item, i, lit, grewFrom, ctx, sweep) => {
+    const [base, high] = COLOR[item.tone];
+    if (item.since < FLASH && i >= grewFrom)
+      return item.since < FLASH / 2 ? WHITE : high;
+    if (i === sweep || i === sweep - 1)
+      return high;
+    if (ctx.mood === "party" && (i + ctx.tick) % 4 < 2)
+      return high;
+    if (isBlink(item, ctx.tick))
+      return high;
+    if (i === lit - 1 && ctx.mood !== "asleep" && (ctx.tick >> (isBusy(ctx.mood) ? 1 : 3) & 1) === 1)
+      return high;
+    return base;
+  };
+  var NAME = 5;
+  var TIME = 6;
+  var GAP = 3;
+  var STEPS = [
+    { id: "lamps and times", lamps: 10, hasTime: true },
+    { id: "half lamps and times", lamps: 5, hasTime: true },
+    { id: "half lamps", lamps: 5, hasTime: false },
+    { id: "numbers", lamps: 0, hasTime: false }
+  ];
+  var tileOf = (step) => NAME + 1 + (step.lamps > 0 ? step.lamps + 1 : 0) + 4 + (step.hasTime ? 1 + TIME : 0);
+  var widthOf = (step, count, hidden) => count * tileOf(step) + (count - 1) * GAP + (hidden > 0 ? 1 + `+${hidden}`.length : 0);
+  var percentColor = (item) => item.tone === "calm" || item.tone === "context" ? WHITE : COLOR[item.tone][0];
+  var tile = (g, x, step, item, index, ctx) => {
+    text(g, { kind: "name", item: index, x }, item.name.slice(0, NAME).padStart(NAME), LABEL);
+    let at = x + NAME + 1;
+    if (step.lamps > 0) {
+      const u = unitsOf(item, step.lamps);
+      const sweep = sweepOf(ctx.mood, ctx.tick, u.lit);
+      for (let i = 0;i < step.lamps; i++) {
+        if (i < u.lit)
+          put(g, at + i, 0, "▊", litColor(item, i, u.lit, u.grewFrom, ctx, sweep));
+        else
+          put(g, at + i, 0, "▊", i >= u.mark ? BUFFER : i < u.clock ? SPARE : AHEAD);
+      }
+      g.parts.push({ kind: "meter", item: index, x: at, width: step.lamps });
+      at += step.lamps + 1;
+    }
+    text(g, { kind: "percent", item: index, x: at }, item.percent.padStart(4), percentColor(item));
+    if (step.hasTime && item.fact) {
+      const words = item.fact[0].slice(0, TIME);
+      text(g, { kind: "fact", item: index, x: at + 4 + 1 + TIME - words.length }, words, item.fact[1]);
+    }
+  };
+  var moreColor = (hidden) => hidden.some((item) => item.tone === "out") ? RED : hidden.some((item) => item.tone !== "calm" && item.tone !== "context") ? YELLOW : WORDS;
+  var drawRow = (scene, room) => {
+    const items = itemsOf(scene);
+    const ctx = { mood: scene.limits.mood, tick: scene.limits.tick };
+    const last = STEPS[STEPS.length - 1];
+    const step = STEPS.find((one) => widthOf(one, items.length, 0) <= room);
+    let shown = items.map((item, index) => ({ item, index }));
+    if (step === undefined) {
+      const keep = [...shown].sort((a, b) => b.item.urgency - a.item.urgency);
+      let count = items.length - 1;
+      while (count > 1 && widthOf(last, count, items.length - count) > room)
+        count--;
+      const kept = new Set(keep.slice(0, Math.max(1, count)).map((one) => one.index));
+      shown = shown.filter((one) => kept.has(one.index));
+    }
+    const at = step ?? last;
+    const hidden = items.filter((_, index) => !shown.some((one) => one.index === index));
+    const hasMore = hidden.length > 0 && widthOf(at, shown.length, hidden.length) <= room;
+    const g = rowGrid(widthOf(at, shown.length, hasMore ? hidden.length : 0));
+    shown.forEach(({ item }, slot) => {
+      const x = slot * (tileOf(at) + GAP);
+      tile(g, x, at, item, slot, ctx);
+      if (slot > 0) {
+        put(g, x - GAP + 1, 0, "│", RULE);
+        g.parts.push({ kind: "rule", x: x - GAP + 1, width: 1 });
+      }
+    });
+    if (hasMore)
+      text(g, { kind: "more", x: g.columns - `+${hidden.length}`.length }, `+${hidden.length}`, moreColor(hidden));
+    if (g.columns > room)
+      return done(rowGrid(0), "none", 0, items.length);
+    return done(g, step === undefined ? `${at.id}, ${shown.length} of ${items.length}` : at.id, shown.length, items.length);
+  };
+  var MODE_LABEL = 24;
+  var WORKING_HINT = "(shift+tab to cycle) · esc to interrupt";
+  var leftOf = (hint) => {
+    const widthOf = (one) => 2 + MODE_LABEL + (one.startsWith("(") ? 1 : 3) + [...one].length;
+    return Math.max(widthOf(hint), widthOf(WORKING_HINT));
+  };
+  var roomOf = (columns, hint, modes = "") => Math.max(1, columns - 3 - leftOf(hint) - (modes === "" ? 0 : modes.length + 3));
+
+  // ../../usage-footer/hooks/row.ts
+  var exports_row2 = {};
+  __export(exports_row2, {
+    MODE_LABEL: () => MODE_LABEL2,
+    STEPS: () => STEPS2,
+    WORKING_HINT: () => WORKING_HINT2,
+    drawRow: () => drawRow2,
+    itemsOf: () => itemsOf2,
+    leftOf: () => leftOf2,
+    roomOf: () => roomOf2,
+    tileOf: () => tileOf2,
+    tokens: () => tokens2
+  });
+
+  // ../../usage-footer/hooks/art.ts
+  var DEFAULT3 = 16777216;
+  var grid2 = (columns, rows) => {
+    const words = new Uint32Array(columns * rows * 3);
+    for (let i = 0;i < columns * rows; i++) {
+      words[i * 3] = 32;
+      words[i * 3 + 1] = DEFAULT3;
+      words[i * 3 + 2] = DEFAULT3;
+    }
+    return { columns, rows, words };
+  };
+  var put2 = (g, x, y, glyph, color, back = DEFAULT3) => {
+    if (x < 0 || y < 0 || x >= g.columns || y >= g.rows)
+      return;
+    const at = (y * g.columns + x) * 3;
+    g.words[at] = glyph.codePointAt(0) ?? 32;
+    g.words[at + 1] = color;
+    g.words[at + 2] = back;
+  };
+  var encode2 = (g) => ({
+    columns: g.columns,
+    rows: g.rows,
+    cells: new Uint8Array(g.words.buffer).toBase64()
+  });
+
+  // ../../usage-footer/hooks/limits.ts
+  var HOUR2 = 3600000;
+  var DAY2 = 24 * HOUR2;
+  var MIN_SHARE = 0.1;
+  var nameOf = ({ kind, label }) => {
+    if (label !== undefined)
+      return label;
+    if (kind === "five_hour")
+      return "5h";
+    if (kind === "seven_day")
+      return "wk";
+    if (kind.startsWith("seven_day_"))
+      return `wk ${kind.slice(10)}`;
+    return kind.replace(/_/g, " ");
+  };
+  var spanOf = (kind) => {
+    if (kind.startsWith("five_hour"))
+      return 5 * HOUR2;
+    if (kind.startsWith("seven_day"))
+      return 7 * DAY2;
+    return;
+  };
+  var resetOf = (limit) => {
+    const at = limit.resetsAt === undefined ? NaN : Date.parse(limit.resetsAt);
+    return Number.isNaN(at) ? undefined : at;
+  };
+  var usedOf = (limit, now) => {
+    const resets = resetOf(limit);
+    return resets !== undefined && now >= resets ? 0 : limit.percentUsed;
+  };
+  var percent2 = (used) => `${used >= 100 ? Math.round(used) : Math.min(99, Math.round(used))}%`;
+  var span = (ms) => {
+    const minutes = Math.max(0, Math.round(ms / 60000));
+    if (minutes < 1)
+      return "under 1m";
+    if (minutes < 60)
+      return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24)
+      return `${hours}h ${minutes % 60}m`;
+    return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+  };
+  var clockText2 = (ms) => {
+    const minutes = Math.max(0, Math.round(ms / 60000));
+    if (minutes < 1)
+      return "<1m";
+    if (minutes < 60)
+      return `${minutes}m`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 10)
+      return `${hours}h ${minutes % 60}m`;
+    if (hours < 24)
+      return `${hours}h`;
+    return `${Math.floor(hours / 24)}d ${hours % 24}h`;
+  };
+  var resetText = (limit, now) => {
+    const resets = resetOf(limit);
+    if (resets === undefined)
+      return;
+    return now >= resets ? "new window" : `resets in ${span(resets - now)}`;
+  };
+  var timeOf = (limit, now) => {
+    const length = spanOf(limit.kind);
+    const resets = resetOf(limit);
+    if (length === undefined || resets === undefined || now >= resets) {
+      return;
+    }
+    return Math.min(1, Math.max(0, (now - (resets - length)) / length));
+  };
+  var paceOf = (limit, now) => {
+    const used = usedOf(limit, now);
+    if (used >= 100)
+      return { kind: "reached", text: "limit reached", short: "used up" };
+    const length = spanOf(limit.kind);
+    const time = timeOf(limit, now);
+    if (length === undefined || time === undefined)
+      return;
+    if (used <= 0)
+      return { kind: "ok", text: "OK at this speed", short: "OK" };
+    if (time < MIN_SHARE)
+      return { kind: "early", text: "too early to say", short: "too early" };
+    const runsOutAt = time * 100 / used;
+    const leftMs = (runsOutAt - time) * length;
+    const left = span(leftMs);
+    return runsOutAt >= 1 ? { kind: "ok", text: "OK at this speed", short: "OK" } : { kind: "fast", text: `runs out in ${left} at this speed`, short: `runs out in ${left}`, runsOutAt, leftMs };
+  };
+  var gaugeOf = (limit, now) => {
+    const time = timeOf(limit, now);
+    const resets = resetText(limit, now);
+    const at = resetOf(limit);
+    const pace = paceOf(limit, now);
+    return {
+      kind: limit.kind,
+      name: nameOf(limit),
+      used: usedOf(limit, now),
+      ...time === undefined ? {} : { time },
+      ...resets === undefined ? {} : { resets },
+      ...at === undefined || now >= at ? {} : { resetsIn: at - now },
+      ...pace === undefined ? {} : { pace }
+    };
+  };
+
+  // ../../usage-footer/hooks/row.ts
+  var WHITE2 = 15658734;
+  var LABEL2 = 12369084;
+  var WORDS2 = 9737364;
+  var GREEN2 = 6281055;
+  var GREEN_HI2 = 8912775;
+  var YELLOW2 = 16766815;
+  var YELLOW_HI2 = 16777095;
+  var RED2 = 16736095;
+  var RED_HI2 = 16746375;
+  var BLUE2 = 6270935;
+  var BLUE_HI2 = 11524095;
+  var ORANGE2 = 16756480;
+  var ORANGE_HI2 = 16766855;
+  var PURPLE2 = 11503615;
+  var PURPLE_HI2 = 14135295;
+  var SPARE2 = 7105644;
+  var AHEAD2 = 3815994;
+  var BUFFER2 = 6225920;
+  var COLOR2 = {
+    calm: [GREEN2, GREEN_HI2],
+    fast: [YELLOW2, YELLOW_HI2],
+    out: [RED2, RED_HI2],
+    context: [BLUE2, BLUE_HI2],
+    near: [YELLOW2, YELLOW_HI2],
+    nearer: [ORANGE2, ORANGE_HI2],
+    compacted: [PURPLE2, PURPLE_HI2]
+  };
+  var FLASH2 = 10;
+  var tokens2 = (n) => {
+    if (n < 1000)
+      return String(Math.round(n));
+    if (n < 1e5)
+      return `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k`;
+    if (n < 1e6)
+      return `${Math.round(n / 1000)}k`;
+    return `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M`;
+  };
+  var limitItems2 = (scene) => scene.gauges.map((gauge) => {
+    const kind = gauge.pace?.kind;
+    const isOut = gauge.used >= 90 || kind === "reached";
+    const isFast = !isOut && kind === "fast";
+    const tone = isOut ? "out" : isFast ? "fast" : "calm";
+    const color = isOut ? RED2 : isFast ? YELLOW2 : WORDS2;
+    const ms = isFast && gauge.pace?.leftMs !== undefined ? gauge.pace.leftMs : gauge.resetsIn;
+    const fact = gauge.resets === "new window" ? ["new", WORDS2] : ms === undefined ? undefined : [clockText2(ms), color];
+    return {
+      name: gauge.name,
+      share: Math.min(100, Math.max(0, gauge.shown)) / 100,
+      percent: percent2(gauge.shown),
+      clock: gauge.time ?? 0,
+      since: 1e6,
+      tone,
+      isAlarm: isOut,
+      ...fact === undefined ? {} : { fact },
+      urgency: kind === "reached" ? 3000 : isOut ? 2000 + gauge.used : isFast ? 1000 + gauge.used : gauge.used
+    };
+  });
+  var UNKNOWN2 = { name: "ctx", share: 0, percent: "--", clock: 0, since: 1e6, tone: "context", isAlarm: false, urgency: -1 };
+  var contextItem2 = (scene) => {
+    const { reading } = scene;
+    if (reading === undefined)
+      return UNKNOWN2;
+    const threshold = reading.threshold ?? reading.window;
+    const near = scene.shown / threshold;
+    const isShrunk = scene.since < FLASH2 * 3 && scene.shown < scene.before * 0.6;
+    const tone = isShrunk ? "compacted" : near >= 0.95 ? "out" : near >= 0.85 ? "nearer" : near >= 0.7 ? "near" : "context";
+    const share = Math.min(1, scene.shown / reading.window);
+    const factColor = tone === "context" ? WORDS2 : tone === "compacted" ? PURPLE2 : COLOR2[tone][0];
+    return {
+      name: "ctx",
+      share,
+      percent: `${Math.min(100, Math.floor(share * 100))}%`,
+      clock: 0,
+      ...reading.threshold === undefined ? {} : { mark: reading.threshold / reading.window },
+      ...scene.before < scene.shown ? { grewFrom: scene.before / reading.window } : {},
+      since: scene.since,
+      tone,
+      isAlarm: near >= 0.95,
+      fact: [isShrunk ? "new" : tokens2(scene.shown), factColor],
+      urgency: near >= 0.95 ? 2500 : near >= 0.85 ? 1500 + near * 100 : near >= 0.7 ? 1000 + near * 100 : near * 100
+    };
+  };
+  var itemsOf2 = (scene) => [contextItem2(scene.context), ...limitItems2(scene.limits)];
+  var isBusy2 = (mood) => mood === "working" || mood === "party";
+  var sweepOf2 = (mood, tick, length) => isBusy2(mood) && length > 0 ? tick % (length + 6) - 1 : -9;
+  var isBlink2 = (item, tick) => item.isAlarm && (tick & 2) === 0;
+  var rowGrid2 = (columns) => Object.assign(grid2(columns, 1), { parts: [] });
+  var text2 = (g, part, words, color) => {
+    const glyphs = [...words];
+    glyphs.forEach((glyph, i) => put2(g, part.x + i, 0, glyph, color));
+    g.parts.push({ ...part, width: glyphs.length });
+  };
+  var done2 = (g, step, shown, of) => ({ ...encode2(g), parts: g.parts, step, shown, of });
+  var EIGHTHS = ["", "▏", "▎", "▍", "▌", "▋", "▊", "▉"];
+  var barOf = (item, cells) => {
+    const eighths = item.share > 0.005 ? Math.min(cells * 8, Math.max(1, Math.round(item.share * cells * 8))) : 0;
+    return {
+      full: Math.floor(eighths / 8),
+      part: eighths % 8,
+      lit: Math.ceil(eighths / 8),
+      clock: Math.round(item.clock * cells),
+      mark: item.mark === undefined ? cells : Math.min(cells, Math.ceil(item.mark * cells - 0.5)),
+      grewFrom: item.grewFrom === undefined ? cells : Math.floor(item.grewFrom * cells)
+    };
+  };
+  var litColor2 = (item, i, lit, grewFrom, ctx, sweep) => {
+    const [base, high] = COLOR2[item.tone];
+    if (item.since < FLASH2 && i >= grewFrom)
+      return item.since < FLASH2 / 2 ? WHITE2 : high;
+    if (i === sweep || i === sweep - 1)
+      return high;
+    if (ctx.mood === "party" && (i + ctx.tick) % 4 < 2)
+      return high;
+    if (isBlink2(item, ctx.tick))
+      return high;
+    if (i === lit - 1 && ctx.mood !== "asleep" && (ctx.tick >> (isBusy2(ctx.mood) ? 1 : 3) & 1) === 1)
+      return high;
+    return base;
+  };
+  var NAME2 = 5;
+  var PERCENT = 3;
+  var TIME2 = 6;
+  var GAP2 = 2;
+  var STEPS2 = [
+    { id: "long bars and times", cells: 8, hasTime: true },
+    { id: "bars and times", cells: 4, hasTime: true },
+    { id: "short bars and times", cells: 2, hasTime: true },
+    { id: "short bars", cells: 2, hasTime: false },
+    { id: "numbers", cells: 0, hasTime: false }
+  ];
+  var nameOf2 = (item) => [...item.name].slice(0, NAME2).join("");
+  var tileOf2 = (step, name) => [...name].slice(0, NAME2).length + 1 + (step.cells > 0 ? step.cells + 1 : 0) + PERCENT + (step.hasTime ? 1 + TIME2 : 0);
+  var widthOf2 = (step, items, hidden) => items.reduce((sum, item) => sum + tileOf2(step, item.name), 0) + Math.max(0, items.length - 1) * GAP2 + (hidden > 0 ? 1 + `+${hidden}`.length : 0);
+  var percentColor2 = (item) => item.tone === "calm" || item.tone === "context" ? WHITE2 : COLOR2[item.tone][0];
+  var percentText = (item) => item.percent.length > PERCENT ? "max" : item.percent.padStart(PERCENT);
+  var bar = (g, x, cells, item, index, ctx) => {
+    const b = barOf(item, cells);
+    const sweep = sweepOf2(ctx.mood, ctx.tick, b.lit);
+    for (let i = 0;i < cells; i++) {
+      const track = i >= b.mark ? BUFFER2 : i < b.clock ? SPARE2 : AHEAD2;
+      if (i < b.full)
+        put2(g, x + i, 0, "█", litColor2(item, i, b.lit, b.grewFrom, ctx, sweep), track);
+      else if (i === b.full && b.part > 0)
+        put2(g, x + i, 0, EIGHTHS[b.part], litColor2(item, i, b.lit, b.grewFrom, ctx, sweep), track);
+      else
+        put2(g, x + i, 0, " ", DEFAULT3, track);
+    }
+    g.parts.push({ kind: "meter", item: index, x, width: cells });
+  };
+  var tile2 = (g, x, step, item, index, ctx) => {
+    const name = nameOf2(item);
+    text2(g, { kind: "name", item: index, x }, name, LABEL2);
+    let at = x + [...name].length + 1;
+    if (step.cells > 0) {
+      bar(g, at, step.cells, item, index, ctx);
+      at += step.cells + 1;
+    }
+    text2(g, { kind: "percent", item: index, x: at }, percentText(item), percentColor2(item));
+    if (step.hasTime && item.fact) {
+      const words = item.fact[0].slice(0, TIME2);
+      text2(g, { kind: "fact", item: index, x: at + PERCENT + 1 + TIME2 - words.length }, words, item.fact[1]);
+    }
+  };
+  var moreColor2 = (hidden) => hidden.some((item) => item.tone === "out") ? RED2 : hidden.some((item) => item.tone !== "calm" && item.tone !== "context") ? YELLOW2 : WORDS2;
+  var drawRow2 = (scene, room) => {
+    const items = itemsOf2(scene);
+    const ctx = { mood: scene.limits.mood, tick: scene.limits.tick };
+    const last = STEPS2[STEPS2.length - 1];
+    const step = STEPS2.find((one) => widthOf2(one, items, 0) <= room);
+    const all = items.map((item, index) => ({ item, index }));
+    let shown = all;
+    if (step === undefined) {
+      const keep = [...all].sort((a, b) => b.item.urgency - a.item.urgency);
+      const keptOf = (count) => {
+        const kept = new Set(keep.slice(0, Math.max(1, count)).map((one) => one.index));
+        return all.filter((one) => kept.has(one.index));
+      };
+      let count = items.length - 1;
+      while (count > 1 && widthOf2(last, keptOf(count).map((one) => one.item), items.length - count) > room)
+        count--;
+      shown = keptOf(count);
+    }
+    const at = step ?? last;
+    const shownItems = shown.map((one) => one.item);
+    const hidden = items.filter((_, index) => !shown.some((one) => one.index === index));
+    const hasMore = hidden.length > 0 && widthOf2(at, shownItems, hidden.length) <= room;
+    const g = rowGrid2(widthOf2(at, shownItems, hasMore ? hidden.length : 0));
+    let x = 0;
+    shown.forEach(({ item }, slot) => {
+      tile2(g, x, at, item, slot, ctx);
+      x += tileOf2(at, item.name) + GAP2;
+    });
+    if (hasMore)
+      text2(g, { kind: "more", x: g.columns - `+${hidden.length}`.length }, `+${hidden.length}`, moreColor2(hidden));
+    if (g.columns > room)
+      return done2(rowGrid2(0), "none", 0, items.length);
+    return done2(g, step === undefined ? `${at.id}, ${shown.length} of ${items.length}` : at.id, shown.length, items.length);
+  };
+  var MODE_LABEL2 = 24;
+  var WORKING_HINT2 = "(shift+tab to cycle) · esc to interrupt";
+  var leftOf2 = (hint) => {
+    const widthOf = (one) => 2 + MODE_LABEL2 + (one.startsWith("(") ? 1 : 3) + [...one].length;
+    return Math.max(widthOf(hint), widthOf(WORKING_HINT2));
+  };
+  var roomOf2 = (columns, hint, modes = "") => Math.max(1, columns - 3 - leftOf2(hint) - (modes === "" ? 0 : modes.length + 3));
+
+  // src/samples.ts
+  var SHOT = Date.parse("2026-10-09T15:04:00Z");
+  var H = 3600000;
+  var iso = (ms) => new Date(ms).toISOString();
+  var SAMPLES = [
+    {
+      id: "shot",
+      title: "Your screenshot, 9 Oct 11:04",
+      isReal: true,
+      now: SHOT,
+      limits: [
+        { kind: "five_hour", percentUsed: 7, resetsAt: "2026-10-09T17:50:00Z" },
+        { kind: "seven_day", percentUsed: 95, resetsAt: "2026-10-10T10:00:00Z" },
+        { kind: "seven_day_fable", percentUsed: 71, label: "fable", resetsAt: "2026-10-10T10:00:00Z" }
+      ],
+      context: { tokens: 460000, window: 1e6 }
+    },
+    {
+      id: "busy",
+      title: "Example: a busy afternoon",
+      isReal: false,
+      now: SHOT,
+      limits: [
+        { kind: "five_hour", percentUsed: 71, resetsAt: iso(SHOT + 2.2 * H) },
+        { kind: "seven_day", percentUsed: 58, resetsAt: iso(SHOT + 70 * H) },
+        { kind: "seven_day_fable", percentUsed: 64, label: "fable", resetsAt: iso(SHOT + 70 * H) }
+      ],
+      context: { tokens: 612000, window: 1e6, threshold: 967000 }
+    },
+    {
+      id: "edge",
+      title: "Example: near the edges",
+      isReal: false,
+      now: SHOT,
+      limits: [
+        { kind: "five_hour", percentUsed: 100, resetsAt: iso(SHOT + 1.1 * H) },
+        { kind: "seven_day", percentUsed: 81, resetsAt: iso(SHOT + 30 * H) },
+        { kind: "seven_day_fable", percentUsed: 88, label: "fable", resetsAt: iso(SHOT + 30 * H) }
+      ],
+      context: { tokens: 905000, window: 1e6, threshold: 967000 }
+    },
+    {
+      id: "main",
+      title: "Example: your main account (no model week)",
+      isReal: false,
+      now: SHOT,
+      limits: [
+        { kind: "five_hour", percentUsed: 12, resetsAt: iso(SHOT + 3.4 * H) },
+        { kind: "seven_day", percentUsed: 44, resetsAt: iso(SHOT + 90 * H) }
+      ],
+      context: { tokens: 98000, window: 200000, threshold: 167000 }
+    }
+  ];
+  var rowScene = (sample, mood, tick, extra = {}) => {
+    const gauges = sample.limits.map((limit) => gaugeOf(limit, sample.now)).map((gauge) => ({ ...gauge, shown: gauge.used }));
+    const { tokens, window, threshold } = sample.context;
+    const limits = { gauges, mood, tick };
+    const context = {
+      reading: { tokens, window, ...threshold === undefined ? {} : { threshold } },
+      shown: tokens,
+      before: sample.context.before ?? tokens,
+      since: 1e6,
+      ...extra
+    };
+    return { limits, context };
+  };
+
+  // src/entry.ts
+  var decode = (cells) => {
+    const bytes = Uint8Array.from(atob(cells), (c) => c.charCodeAt(0));
+    return new Uint32Array(bytes.buffer);
+  };
+  var drawWith = (code, scene, columns, hint) => {
+    const room = code.roomOf(columns, hint);
+    const frame = code.drawRow(scene, room);
+    return { columns: frame.columns, words: frame.columns === 0 ? [] : [...decode(frame.cells)], step: frame.step, room };
+  };
+  var todayNames = (scene) => ({
+    ...scene,
+    limits: { ...scene.limits, gauges: scene.limits.gauges.map((gauge) => ({ ...gauge, name: gauge.name.replace(/^wk\b/, "week") })) }
+  });
+  var drawToday = (scene, columns, hint = "(shift+tab to cycle)") => drawWith(exports_row, todayNames(scene), columns, hint);
+  var drawNew = (scene, columns, hint = "(shift+tab to cycle)") => drawWith(exports_row2, scene, columns, hint);
+  globalThis.ROW = { drawToday, drawNew, SAMPLES, rowScene, STEPS: STEPS2, TODAY_STEPS: STEPS };
+})();
+
+</script>
+<script>
+window.REAL = [{"label":"w177","columns":177,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9608,6270935,3158064,9613,6270935,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,6225920,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,51,10395294,16777216,52,10395294,16777216,46,10395294,16777216,49,10395294,16777216,107,10395294,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9610,6281055,6447714,32,13619151,6447714,32,13619151,6447714,32,13619151,6447714,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,50,10395294,16777216,104,10395294,16777216,32,10395294,16777216,51,10395294,16777216,49,10395294,16777216,109,10395294,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9611,16746375,3158064,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,16736095,16777216,56,16736095,16777216,104,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9608,6281055,6447714,9608,6281055,6447714,9608,6281055,6447714,9608,6281055,6447714,9611,6281055,6447714,32,13619151,6447714,32,13619151,3158064,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,10395294,16777216,56,10395294,16777216,104,10395294,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"w167","columns":167,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9608,6270935,3158064,9613,6270935,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,6225920,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,51,10395294,16777216,52,10395294,16777216,46,10395294,16777216,49,10395294,16777216,107,10395294,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9610,6281055,6447714,32,13619151,6447714,32,13619151,6447714,32,13619151,6447714,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,50,10395294,16777216,104,10395294,16777216,32,10395294,16777216,51,10395294,16777216,49,10395294,16777216,109,10395294,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9611,16746375,3158064,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,16736095,16777216,56,16736095,16777216,104,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9608,6281055,6447714,9608,6281055,6447714,9608,6281055,6447714,9608,6281055,6447714,9611,6281055,6447714,32,13619151,6447714,32,13619151,3158064,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,10395294,16777216,56,10395294,16777216,104,10395294,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"w151","columns":151,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9611,6270935,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,6225920,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,51,10395294,16777216,52,10395294,16777216,46,10395294,16777216,49,10395294,16777216,107,10395294,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9613,6281055,6447714,32,13619151,6447714,32,13619151,3158064,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,50,10395294,16777216,104,10395294,16777216,32,10395294,16777216,51,10395294,16777216,49,10395294,16777216,109,10395294,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9610,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,16736095,16777216,56,16736095,16777216,104,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9608,6281055,6447714,9609,6281055,6447714,32,13619151,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,10395294,16777216,56,10395294,16777216,104,10395294,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"w149","columns":149,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,6270935,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,51,10395294,16777216,52,10395294,16777216,46,10395294,16777216,49,10395294,16777216,107,10395294,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,6281055,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,50,10395294,16777216,104,10395294,16777216,32,10395294,16777216,51,10395294,16777216,49,10395294,16777216,109,10395294,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9609,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,16736095,16777216,56,16736095,16777216,104,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,6281055,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,10395294,16777216,56,10395294,16777216,104,10395294,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"w143","columns":143,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,6270935,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,51,10395294,16777216,52,10395294,16777216,46,10395294,16777216,49,10395294,16777216,107,10395294,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,6281055,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,50,10395294,16777216,104,10395294,16777216,32,10395294,16777216,51,10395294,16777216,49,10395294,16777216,109,10395294,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9609,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,16736095,16777216,56,16736095,16777216,104,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,6281055,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,10395294,16777216,56,10395294,16777216,104,10395294,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"w142","columns":142,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,6270935,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,6281055,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9609,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,6281055,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"w130","columns":130,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,6270935,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,6281055,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9609,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,6281055,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"w120","columns":120,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,11524095,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,8912775,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9609,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,8912775,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"w110","columns":110,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"w100","columns":100,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,43,10395294,16777216,49,10395294,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"work149","columns":149,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,101,9737364,16777216,115,9737364,16777216,99,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,105,9737364,16777216,110,9737364,16777216,116,9737364,16777216,101,9737364,16777216,114,9737364,16777216,114,9737364,16777216,117,9737364,16777216,112,9737364,16777216,116,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,6270935,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,51,10395294,16777216,52,10395294,16777216,46,10395294,16777216,49,10395294,16777216,107,10395294,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,6281055,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,50,10395294,16777216,104,10395294,16777216,32,10395294,16777216,51,10395294,16777216,49,10395294,16777216,109,10395294,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9609,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,16736095,16777216,56,16736095,16777216,104,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,6281055,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,10395294,16777216,56,10395294,16777216,104,10395294,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"work120","columns":120,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,40,9737364,16777216,115,9737364,16777216,104,9737364,16777216,105,9737364,16777216,102,9737364,16777216,116,9737364,16777216,43,9737364,16777216,116,9737364,16777216,97,9737364,16777216,98,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,99,9737364,16777216,121,9737364,16777216,99,9737364,16777216,108,9737364,16777216,101,9737364,16777216,41,9737364,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,101,9737364,16777216,115,9737364,16777216,99,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,105,9737364,16777216,110,9737364,16777216,116,9737364,16777216,101,9737364,16777216,114,9737364,16777216,114,9737364,16777216,117,9737364,16777216,112,9737364,16777216,116,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,6270935,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,6281055,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16736095,6447714,9609,16736095,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,6281055,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"bg177","columns":177,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,49,55255,16777216,32,55255,16777216,115,55255,16777216,104,55255,16777216,101,55255,16777216,108,55255,16777216,108,55255,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,8595,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,109,9737364,16777216,97,9737364,16777216,110,9737364,16777216,97,9737364,16777216,103,9737364,16777216,101,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9608,11524095,3158064,9613,11524095,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,6225920,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,51,10395294,16777216,53,10395294,16777216,46,10395294,16777216,51,10395294,16777216,107,10395294,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9610,8912775,6447714,32,13619151,6447714,32,13619151,6447714,32,13619151,6447714,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,50,10395294,16777216,104,10395294,16777216,32,10395294,16777216,51,10395294,16777216,49,10395294,16777216,109,10395294,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9608,16746375,6447714,9611,16746375,3158064,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,16736095,16777216,56,16736095,16777216,104,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,8912775,6447714,9608,8912775,6447714,9608,6281055,6447714,9608,6281055,6447714,9608,8912775,6447714,9611,8912775,6447714,32,13619151,6447714,32,13619151,3158064,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,10395294,16777216,56,10395294,16777216,104,10395294,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"bg149","columns":149,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,49,55255,16777216,32,55255,16777216,115,55255,16777216,104,55255,16777216,101,55255,16777216,108,55255,16777216,108,55255,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,8595,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,109,9737364,16777216,97,9737364,16777216,110,9737364,16777216,97,9737364,16777216,103,9737364,16777216,101,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,6270935,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,51,10395294,16777216,53,10395294,16777216,46,10395294,16777216,51,10395294,16777216,107,10395294,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,6281055,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,50,10395294,16777216,104,10395294,16777216,32,10395294,16777216,51,10395294,16777216,49,10395294,16777216,109,10395294,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9609,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,16736095,16777216,56,16736095,16777216,104,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,6281055,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,49,10395294,16777216,56,10395294,16777216,104,10395294,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"bg130","columns":130,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,49,55255,16777216,32,55255,16777216,115,55255,16777216,104,55255,16777216,101,55255,16777216,108,55255,16777216,108,55255,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,8595,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,109,9737364,16777216,97,9737364,16777216,110,9737364,16777216,97,9737364,16777216,103,9737364,16777216,101,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,6270935,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,6281055,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9609,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,6281055,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216]},{"label":"bg120","columns":120,"row":[32,13619151,16777216,32,13619151,16777216,9205,16746415,16777216,9205,16746415,16777216,32,16746415,16777216,98,16746415,16777216,121,16746415,16777216,112,16746415,16777216,97,16746415,16777216,115,16746415,16777216,115,16746415,16777216,32,16746415,16777216,112,16746415,16777216,101,16746415,16777216,114,16746415,16777216,109,16746415,16777216,105,16746415,16777216,115,16746415,16777216,115,16746415,16777216,105,16746415,16777216,111,16746415,16777216,110,16746415,16777216,115,16746415,16777216,32,16746415,16777216,111,16746415,16777216,110,16746415,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,49,55255,16777216,32,55255,16777216,115,55255,16777216,104,55255,16777216,101,55255,16777216,108,55255,16777216,108,55255,16777216,32,9737364,16777216,183,9737364,16777216,32,9737364,16777216,8595,9737364,16777216,32,9737364,16777216,116,9737364,16777216,111,9737364,16777216,32,9737364,16777216,109,9737364,16777216,97,9737364,16777216,110,9737364,16777216,97,9737364,16777216,103,9737364,16777216,101,9737364,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,32,13619151,16777216,99,12369084,16777216,116,12369084,16777216,120,12369084,16777216,32,13619151,16777216,9613,6270935,3158064,32,13619151,3158064,32,13619151,16777216,49,15658734,16777216,55,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,53,12369084,16777216,104,12369084,16777216,32,13619151,16777216,9615,6281055,6447714,32,13619151,3158064,32,13619151,16777216,32,15658734,16777216,57,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216,119,12369084,16777216,107,12369084,16777216,32,13619151,16777216,9608,16746375,6447714,9609,16746375,6447714,32,13619151,16777216,57,16736095,16777216,53,16736095,16777216,37,16736095,16777216,32,13619151,16777216,32,13619151,16777216,102,12369084,16777216,97,12369084,16777216,98,12369084,16777216,108,12369084,16777216,101,12369084,16777216,32,13619151,16777216,9608,6281055,6447714,9613,6281055,6447714,32,13619151,16777216,55,15658734,16777216,49,15658734,16777216,37,15658734,16777216,32,13619151,16777216,32,13619151,16777216]}];
+window.REAL_NOTE = "Claude Code v2.1.295 · Haiku (200k window) · bypass mode · a renamed copy of the new add-on · 9 Oct 11:15";
+window.SHOWN = {"949494":10395294,"6c6c6c":6447714,"3a3a3a":3158064,"4e4e4e":5789784};
+</script>
+<script>
+(() => {
+  const R = window.ROW
+  const DEF = 0x01000000
+  const TERM = '#171717'
+  const FG = '#d6d6d6'
+  const CW = 7, CH = 15
+  const FONT = '11.5px "SF Mono", ui-monospace, Menlo, monospace'
+  const WIDTHS = [200, 177, 167, 151, 149, 143, 142, 130, 120, 110, 100]
+  const YOURS = new Set([120, 149, 177])
+  const LABEL = ['⏵⏵ bypass permissions on', '#ff87af']
+  const HINT_REST = '(shift+tab to cycle)'
+  const HINT_WORK = '(shift+tab to cycle) · esc to interrupt'
+  const HINT_SHELL = '1 shell · esc to interrupt · ↓ to manage'
+  const state = { tab: 'before', width: 120, moment: 'rest', sample: 'shot', tick: 0, cycle: 0 }
+
+  // Claude Code shows a few greys a step off what the code asks (measured 4 Oct).
+  const shown = n => window.SHOWN[(n & 0xffffff).toString(16)] ?? n & 0xffffff
+  const hex = (n, fallback) => (n === DEF || n === undefined ? fallback : '#' + shown(n).toString(16).padStart(6, '0'))
+  const EIGHTHS = { '▏': 1, '▎': 2, '▍': 3, '▌': 4, '▋': 5, '▊': 6, '▉': 7, '█': 8 }
+
+  // One terminal row as cells [glyph, fg, bg, …].
+  const paintRow = (ctx, y, words, columns, remap = true) => {
+    const color = (n, fb) => (n === DEF || n === undefined ? fb : '#' + (remap ? shown(n) : n & 0xffffff).toString(16).padStart(6, '0'))
+    for (let x = 0; x < columns; x++) {
+      const i = x * 3
+      const cp = words[i] ?? 0x20, fg = color(words[i + 1], FG), bg = words[i + 2]
+      const px = x * CW, py = y * CH
+      if (bg !== DEF && bg !== undefined) { ctx.fillStyle = color(bg, TERM); ctx.fillRect(px, py + 1, CW, CH - 2) }
+      const glyph = String.fromCodePoint(cp)
+      if (glyph === ' ') continue
+      const eighths = EIGHTHS[glyph]
+      ctx.fillStyle = fg
+      if (eighths) { ctx.fillRect(px, py + 1, (CW * eighths) / 8, CH - 2); continue }
+      if (glyph === '─') { ctx.fillRect(px, py + CH / 2, CW, 1); continue }
+      ctx.fillText(glyph, px + CW / 2, py + CH / 2 + 1)
+    }
+  }
+  const canvasFor = (columns, rows) => {
+    const c = document.createElement('canvas')
+    const dpr = Math.max(2, window.devicePixelRatio || 1)
+    c.width = columns * CW * dpr; c.height = rows * CH * dpr
+    c.style.width = columns * CW + 'px'
+    const ctx = c.getContext('2d'); ctx.scale(dpr, dpr)
+    ctx.fillStyle = TERM; ctx.fillRect(0, 0, columns * CW, rows * CH)
+    ctx.font = FONT; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+    return { c, ctx }
+  }
+  const cellsOf = runs => { const w = []; for (const [text, color] of runs) for (const ch of text) w.push(ch.codePointAt(0), parseInt(color.slice(1), 16), DEF); return w }
+
+  // The left text Claude Code draws at this moment.
+  const leftRuns = moment => {
+    const hint = moment === 'working' ? HINT_WORK : moment === 'shell' ? HINT_SHELL : HINT_REST
+    return [['  ', FG], LABEL, [(hint.startsWith('(') ? ' ' : ' · ') + hint, '#949494']]
+  }
+  // The widest hint the row keeps room for at this moment.
+  const roomHint = moment => (moment === 'shell' ? HINT_SHELL : HINT_REST)
+
+  // The footer line at a width: the left text, then the row ending two columns from the edge.
+  const footerCanvas = (columns, right, moment, withRule = false) => {
+    const top = withRule ? 1 : 0
+    const { c, ctx } = canvasFor(columns, top + 1)
+    if (withRule) { const rule = []; for (let x = 0; x < columns; x++) rule.push(0x2500, 0x585858, DEF); paintRow(ctx, 0, rule, columns, false) }
+    const row = []
+    for (let x = 0; x < columns; x++) row.push(0x20, DEF, DEF)
+    const left = cellsOf(leftRuns(moment))
+    for (let i = 0; i < left.length && i < row.length; i++) row[i] = left[i]
+    const start = columns - 2 - right.columns
+    for (let x = 0; x < right.columns; x++) { const at = (start + x) * 3; if (at >= 0) { row[at] = right.words[x * 3]; row[at + 1] = right.words[x * 3 + 1]; row[at + 2] = right.words[x * 3 + 2] } }
+    // The left text is drawn as given; the row's colours go through Claude Code's grey remap.
+    const leftEnd = left.length / 3
+    paintRow(ctx, top, row.slice(0, leftEnd * 3), leftEnd, false)
+    ctx.save(); ctx.translate(leftEnd * CW, 0); paintRow(ctx, top, row.slice(leftEnd * 3), columns - leftEnd); ctx.restore()
+    return c
+  }
+  const rowCanvas = cells => {
+    const { c, ctx } = canvasFor(Math.max(1, cells.columns), 1)
+    paintRow(ctx, 0, cells.words, cells.columns)
+    return c
+  }
+
+  // The moment: what Claude is doing, and what the context just did.
+  const sceneNow = () => {
+    const sample = R.SAMPLES.find(s => s.id === state.sample)
+    const t = state.cycle
+    if (state.moment === 'working') return R.rowScene(sample, 'working', state.tick)
+    if (state.moment === 'reply') {
+      const since = t % 64
+      const tokens = sample.context.tokens
+      return R.rowScene(sample, since < 32 ? 'party' : 'idle', state.tick, { before: Math.max(0, tokens - sample.context.window * 0.12), since })
+    }
+    if (state.moment === 'compact') {
+      const since = t % 64
+      const after = Math.round(sample.context.window * 0.045)
+      const s = { ...sample, context: { ...sample.context, tokens: after } }
+      return R.rowScene(s, 'idle', state.tick, { before: (sample.context.threshold ?? sample.context.window) * 0.98, since })
+    }
+    return R.rowScene(sample, 'idle', state.tick)
+  }
+
+  const STEP_WORDS = {
+    'long bars and times': '8-cell bars + times', 'bars and times': '4-cell bars + times', 'short bars and times': '2-cell bars + times', 'short bars': '2-cell bars', numbers: 'numbers only',
+    'lamps and times': '10 lamps + times', 'half lamps and times': '5 lamps + times', 'half lamps': '5 lamps', none: 'nothing fits',
+  }
+  const stepText = step => step.replace(/^([a-z -]+)(, (\d) of (\d))?$/, (_, a, __, n, of) => (STEP_WORDS[a] ?? a) + (n ? `, ${n} of ${of} gauges` : ''))
+
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e }
+
+  const renderBefore = scene => {
+    const box = document.getElementById('beforeAfter'); box.replaceChildren()
+    const hint = roomHint(state.moment)
+    for (const [w, note] of [[120, 'your smallest window'], [149, ''], [177, '']]) {
+      const today = R.drawToday(scene, w, hint), next = R.drawNew(scene, w, hint)
+      const h = el('h2', YOURS.has(w) ? 'yours' : '', `${w} columns`)
+      h.append(el('span', 'note', `${note ? note + ' · ' : ''}room for the row: ${next.room} columns`))
+      const term = el('div', 'term'), pair = el('div', 'pair')
+      const a = el('div', 'who', 'Today'); a.append(el('small', '', stepText(today.step)))
+      const b = el('div', 'who new', 'Mini bars'); b.append(el('small', '', stepText(next.step)))
+      pair.append(a, footerCanvas(w, today, state.moment), b, footerCanvas(w, next, state.moment))
+      term.append(pair)
+      box.append(h, term)
+    }
+  }
+
+  const renderBars = scene => {
+    const hint = roomHint(state.moment)
+    const big = document.getElementById('barsBig'); big.replaceChildren()
+    const f = R.drawNew(scene, state.width, hint)
+    big.append(footerCanvas(state.width, f, state.moment, true))
+    document.getElementById('barsStep').textContent = `${state.width} columns · room ${f.room} · ${stepText(f.step)} · ${f.columns} wide`
+    const all = document.getElementById('barsAll'); all.replaceChildren()
+    for (const w of WIDTHS) {
+      const g = R.drawNew(scene, w, hint)
+      const label = el('div', 'w' + (YOURS.has(w) ? ' yours' : ''), `${w}${w === state.width ? ' ◂' : ''}`)
+      label.append(el('small', '', `room ${g.room} · ${stepText(g.step)}`))
+      const right = el('div', 'right'); right.append(rowCanvas(g))
+      all.append(label, right)
+    }
+  }
+
+  const renderReal = () => {
+    const box = document.getElementById('realCaps'); box.replaceChildren()
+    const caps = window.REAL ?? []
+    if (!caps.length) { box.textContent = 'Not captured yet.'; return }
+    const GROUPS = [
+      ['At rest, after a reply', 'the left text: “⏵⏵ bypass permissions on (shift+tab to cycle)”', ['w177', 'w167', 'w151', 'w149', 'w143', 'w142', 'w130', 'w120', 'w110', 'w100']],
+      ['Mid-reply, Claude working', 'the left text gains “· esc to interrupt”; the row keeps its size', ['work149', 'work120']],
+      ['A background shell running', 'the left text: “⏵⏵ bypass permissions on · 1 shell · ↓ to manage”', ['bg177', 'bg149', 'bg130', 'bg120']],
+    ]
+    for (const [title, note, labels] of GROUPS) {
+      const h = el('h2', '', title); h.append(el('span', 'note', note))
+      const term = el('div', 'term'), grid = el('div', 'caps')
+      for (const label of labels) {
+        const cap = caps.find(c => c.label === label); if (!cap) continue
+        const w = cap.columns
+        const { c, ctx } = canvasFor(w, 1)
+        paintRow(ctx, 0, cap.row, w, false)
+        grid.append(el('div', 'lbl' + (YOURS.has(w) ? ' yours' : ''), `${w}`), c)
+      }
+      term.append(grid); box.append(h, term)
+    }
+  }
+
+  const renderTable = () => {
+    const sample = R.SAMPLES.find(s => s.id === state.sample)
+    const scene = R.rowScene(sample, 'idle', 0)
+    const t = document.getElementById('shrinkTable')
+    const rows = [`<tr><th>Window</th><th>Room</th><th>Today (Lamps)</th><th>Mini bars</th></tr>`]
+    const lines = [...WIDTHS.map(w => [w, HINT_REST, '']), [120, HINT_SHELL, ' + shell'], [130, HINT_SHELL, ' + shell']].sort((a, b) => b[0] - a[0] || a[2].length - b[2].length)
+    for (const [w, hint, extra] of lines) {
+      const today = R.drawToday(scene, w, hint), next = R.drawNew(scene, w, hint)
+      const lost = /numbers|of \d/.test(stepText(today.step))
+      rows.push(`<tr class="${YOURS.has(w) && !extra ? 'yours' : ''}"><td class="w">${w}${extra}</td><td class="w">${next.room}</td><td class="${lost ? 'lost' : 'ok'}">${stepText(today.step)}</td><td class="new">${stepText(next.step)}</td></tr>`)
+    }
+    t.innerHTML = rows.join('')
+  }
+
+  const render = () => {
+    const scene = sceneNow()
+    document.getElementById('colsOut').textContent = state.width + ' cols'
+    if (state.tab === 'before') renderBefore(scene)
+    if (state.tab === 'bars') renderBars(scene)
+  }
+
+  // Controls.
+  const samples = document.getElementById('samples')
+  for (const s of R.SAMPLES) {
+    const b = el('button', 'chip', { shot: 'Your screenshot', busy: 'Busy', edge: 'Near the edges', main: 'Main account' }[s.id] ?? s.title)
+    b.dataset.sample = s.id; b.title = s.title
+    samples.append(b)
+  }
+  document.getElementById('realNote').textContent = window.REAL_NOTE ?? ''
+  const press = () => {
+    document.querySelectorAll('[data-moment]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.moment === state.moment)))
+    document.querySelectorAll('[data-sample]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sample === state.sample)))
+    document.querySelectorAll('[data-width]').forEach(b => b.setAttribute('aria-pressed', String(Number(b.dataset.width) === state.width)))
+    document.querySelectorAll('nav [data-tab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === state.tab)))
+    document.querySelectorAll('section[data-panel]').forEach(s => { s.hidden = s.dataset.panel !== state.tab })
+    const live = state.tab === 'before' || state.tab === 'bars'
+    document.getElementById('widthGroup').hidden = state.tab !== 'bars'
+    document.getElementById('momentGroup').hidden = !live
+    document.getElementById('sampleGroup').hidden = state.tab === 'real'
+    document.getElementById('realGroup').hidden = state.tab !== 'real'
+    if (state.tab === 'rules') renderTable()
+    if (state.tab === 'real') renderReal()
+  }
+  const setWidth = w => { state.width = Math.max(100, Math.min(200, w)); document.getElementById('width').value = state.width; press(); render() }
+  document.getElementById('width').addEventListener('input', e => setWidth(Number(e.target.value)))
+  document.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return
+    if (b.dataset.width) setWidth(Number(b.dataset.width))
+    if (b.dataset.moment) { state.moment = b.dataset.moment; state.cycle = 0 }
+    if (b.dataset.sample) state.sample = b.dataset.sample
+    if (b.dataset.tab) { state.tab = b.dataset.tab; try { history.replaceState(null, '', '#' + state.tab) } catch {} }
+    press(); render()
+  })
+  const TABS = ['before', 'bars', 'real', 'rules']
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT') return
+    const n = Number(e.key)
+    if (n >= 1 && n <= TABS.length) state.tab = TABS[n - 1]
+    else if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') state.tab = TABS[(TABS.indexOf(state.tab) + (e.key === 'ArrowRight' ? 1 : TABS.length - 1)) % TABS.length]
+    else return
+    try { history.replaceState(null, '', '#' + state.tab) } catch {}
+    press(); render()
+  })
+  const hash = location.hash.slice(1)
+  if (TABS.includes(hash)) state.tab = hash
+  press(); render()
+  // Eight frames a second, as the add-on draws while something moves.
+  setInterval(() => { state.tick++; state.cycle++; if (state.tab === 'before' || state.tab === 'bars') render() }, 125)
+})()
+</script>
+</body>
+</html>
