@@ -5,25 +5,26 @@ import type { Limit } from '../types'
 import type { Frame, Mood, Scene } from './art'
 import { gaugeOf } from './limits'
 import type { Gauge } from './limits'
-import { drawRow, leftOf, roomOf } from './row'
+import { drawRow, leftOf, roomOf, SHORT_HINTS } from './row'
 import type { ContextReading, ContextScene } from './row'
 
 const reading = atom({ plugin: 'usage-footer', key: 'reading' } as const, {
   limits: [],
 })
-const design = atom({ plugin: 'usage-footer', key: 'design' } as const, 'lamps')
+const design = atom({ plugin: 'usage-footer', key: 'design' } as const, 'tiles')
 const clock = atom({ plugin: 'usage-footer', key: 'now' } as const, 0)
 const scoped = atom({ plugin: 'usage-footer', key: 'scoped' } as const, [])
 const designRef = { plugin: 'usage-footer', key: 'design' } as const
 
-// The footer shows the row (Mini bars since 9 Oct; the saved choice is still called 'lamps'), or nothing.
-type Choice = 'lamps' | 'off'
+// The footer shows the row (Bar tiles since 29 Oct), or nothing.
+type Choice = 'tiles' | 'off'
 
 // 4 Oct: they picked Lamps (the context and the limits as one row of equal tiles) over
 // Pills, and the older designs (Panel, Strip, Ledger, the cache designs, the context bar)
-// were retired. The add-on switches to it once; /limits off still hides it. 9 Oct: the row
-// became Mini bars (row.ts), to keep every gauge down to a 120-column window.
-const BUILT = 'lamps-row'
+// were retired. 9 Oct: the row became Mini bars, to keep every gauge down to a 120-column
+// window. 29 Oct: Bar tiles (row.ts), picked over Long bars from a page showing both.
+// The add-on switches to a new row once; /limits off still hides it.
+const BUILT = 'tiles-row'
 // A model's own weekly limit (Fable) is read by a second, silent Claude Code. Every window
 // of the account shares one reading through the store: a reading this young is used as it
 // is, and only one window asks at a time. The store is one file for every account on this
@@ -33,14 +34,14 @@ const SHARED_MS = 3 * 60_000
 const ASKING_MS = 30_000
 const SCOPED_QUIET_MS = 30 * 60_000
 const MEASURE_MS = 30_000
-// Eight frames a second while something moves; two while only the last lamps breathe.
+// Eight frames a second while something moves; two while only the last lit cells breathe.
 const FRAME_MS = 125
 const REST_MS = 500
 const PARTY = 48
 const ASLEEP_AFTER = 2400
 
-// A saved choice: an older design's name (panel, led…) reads as Lamps.
-const choiceOf = (value: unknown): Choice => (value === 'off' ? 'off' : 'lamps')
+// A saved choice: an older design's name (lamps, panel, led…) reads as the row.
+const choiceOf = (value: unknown): Choice => (value === 'off' ? 'off' : 'tiles')
 
 type Mounted = {
   requestId: string
@@ -68,9 +69,9 @@ const ticking: { timer: Timer | undefined; ms: number | undefined } = { timer: u
 // `isLive`: a person is at the prompt. A `claude -p` run (the usage request itself
 // is one) loads the add-on too, and must not ask anything.
 const asked = { isOut: false, activeAt: 0, isLive: false, account: '' }
-// The hint whose left text is the widest seen this session (see leftOf); `isStale` until
-// the footer is drawn for it.
-const hint = { text: '', isStale: false }
+// The width of the left text shown now (see leftOf); `isStale` until the footer is drawn for it.
+// It follows the hint, so the row gets its room back when a background shell's pills go.
+const hint = { left: 0, isStale: false }
 
 // The context window as Claude Code reports it, and what the gauge shows on its way there:
 // `before` is where it stood when the figure last changed, `since` the frames since.
@@ -122,7 +123,7 @@ const follow = (limits: Limit[], now: number) => {
 
 // How often a frame is needed now: every 125 ms while something moves (a turn, a reply's
 // wave, numbers on their way, the context flashing), every 500 ms while only the last
-// lamps breathe at rest, never while nothing is shown or asleep.
+// cells breathe at rest, never while nothing is shown or asleep.
 const periodNow = (): number | undefined => {
   const all = [...sites.values()].flat()
   if (all.length === 0) return undefined
@@ -375,7 +376,7 @@ export const register: Register = on => {
       await update($, design, () => saved)
     }
     if ((await $.store.get('built')) !== BUILT) {
-      await choose($, 'lamps')
+      await choose($, 'tiles')
       await $.store.set('built', BUILT)
     }
 
@@ -426,11 +427,11 @@ export const register: Register = on => {
         text:
           choiceOf(await read($, design)) === 'off'
             ? 'The footer row is hidden. /limits on brings it back.'
-            : 'The footer row shows ctx, 5h, wk and a model\'s week as mini bars, shrinking together as the window narrows. /limits off hides it.',
+            : 'The footer row shows ctx, 5h, wk and a model\'s week as tiles that fill like bars, each with its reset time, shrinking together as the window narrows. /limits off hides it.',
       }
     }
-    if (word === 'on' || word === 'lamps') {
-      await choose($, 'lamps')
+    if (word === 'on' || word === 'tiles') {
+      await choose($, 'tiles')
 
       return { text: 'Now showing the footer row.' }
     }
@@ -440,10 +441,10 @@ export const register: Register = on => {
       return { text: 'The footer row is hidden. /limits on brings it back.' }
     }
 
-    return { text: 'Type /limits on or /limits off. (Lamps became Mini bars on 9 Oct; Panel, Strip, Ledger and the cache designs were retired on 4 Oct.)' }
+    return { text: 'Type /limits on or /limits off. (Bar tiles replaced Mini bars on 29 Oct; Lamps, Panel, Strip, Ledger and the cache designs were retired before.)' }
   })
 
-  // The right of the footer: one row of lamps, as wide as the room the left text leaves.
+  // The right of the footer: one row of tiles, as wide as the room the left text leaves.
   on('ui.render', { component: 'SessionMode' }, async ($, e, next) => {
     const choice = choiceOf(await read($, design))
     const { limits } = await read($, reading)
@@ -459,7 +460,7 @@ export const register: Register = on => {
 
       return next(e)
     }
-    const room = roomOf(columns, hint.text, modes)
+    const room = roomOf(columns, hint.left, modes)
     const row = drawRow({ limits: sceneNow(), context: contextScene() }, room)
     if (row.columns === 0) {
       schedule($)
@@ -478,16 +479,21 @@ export const register: Register = on => {
     )
   })
 
-  // The hint line, as the engine draws it: the widest its left text gets is what the row
-  // measures its room by. (The terminal joins a tail to the line with a dot.)
-  on('ui.render', { component: 'PromptHint' }, ($, e, next) => {
+  // The hint line: while the row is shown, a plain hint is shortened (row.ts), and the left
+  // text's width as drawn is what the row measures its room by. (The terminal joins a tail to
+  // the line with a dot.)
+  on('ui.render', { component: 'PromptHint' }, async ($, e, next) => {
+    if (choiceOf(await read($, design)) === 'off' || e.surface !== 'terminal') return next(e)
     const tail = e.props.tail
-    const text = tail === undefined ? e.props.hint : `${e.props.hint} · ${tail}`
-    if (leftOf(text) > leftOf(hint.text)) {
-      hint.text = text
+    const short = tail === undefined ? SHORT_HINTS[e.props.hint] : undefined
+    const left = short === undefined ? leftOf(tail === undefined ? e.props.hint : `${e.props.hint} · ${tail}`, false) : leftOf(short, true)
+    if (left !== hint.left) {
+      hint.left = left
       hint.isStale = true
+      // The frame clock may be still (asleep): draw the row for its new room now.
+      redrawForHint($)
     }
 
-    return next(e)
+    return short === undefined ? next(e) : next({ ...e, props: { ...e.props, hint: short } })
   })
 }

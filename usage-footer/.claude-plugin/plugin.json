@@ -1,7 +1,7 @@
 {
   "name": "usage-footer",
-  "version": "0.6.0",
-  "description": "One row in the footer: the context and your usage limits (5-hour, week, a model's own week) as mini bars that shrink together as the window narrows, all four kept down to a 120-column window. /limits on | off.",
+  "version": "0.7.0",
+  "description": "One row in the footer: the context and your usage limits (5-hour, week, a model's own week) as bar tiles that fill as they are used, coloured by how full they are, each with its reset time, all four kept down to a 120-column window. /limits on | off.",
   "author": {
     "name": "Christian Tavarez"
   },

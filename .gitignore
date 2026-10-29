@@ -5,3 +5,5 @@ node_modules/
 # Pictures from shoot.mjs.
 previews/*/shots/
 *.log
+# pyte for the footer checks (previews/*/run).
+.pylib/

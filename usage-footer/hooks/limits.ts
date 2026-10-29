@@ -73,16 +73,18 @@ export const span = (ms: number) => {
   return `${Math.floor(hours / 24)}d ${hours % 24}h`
 }
 
-// A time in six columns at most, for the footer: "<1m", "38m", "3h 7m", "13h", "6d 14h".
+// A time in five columns at most, for the footer: "<1m", "38m", "3h", "3h7m", "13h", "6d",
+// "6d14h".
 export const clockText = (ms: number) => {
   const minutes = Math.max(0, Math.round(ms / 60_000))
   if (minutes < 1) return '<1m'
   if (minutes < 60) return `${minutes}m`
   const hours = Math.floor(minutes / 60)
-  if (hours < 10) return `${hours}h ${minutes % 60}m`
+  if (hours < 10) return minutes % 60 === 0 ? `${hours}h` : `${hours}h${minutes % 60}m`
   if (hours < 24) return `${hours}h`
+  const days = Math.floor(hours / 24)
 
-  return `${Math.floor(hours / 24)}d ${hours % 24}h`
+  return hours % 24 === 0 ? `${days}d` : `${days}d${hours % 24}h`
 }
 
 export const resetText = (limit: Limit, now: number) => {

@@ -160,17 +160,17 @@ const BYPASS = { ...HINT, props: { ...HINT.props, hint: '(shift+tab to cycle)' }
 const at = (columns: number) => ({ ...FOOTER, viewport: { columns, rows: 40 } })
 // An account in the store: the minute its week starts over.
 const ACCOUNT = String(Math.round((NOW + 76 * HOUR) / 60_000))
-const GREEN = 0x5fd75f
-const YELLOW = 0xffd75f
-const SPARE = 0x6c6c6c
-const AHEAD = 0x3a3a3a
-
-const BLUE = 0x5fafd7
+// Tile fills, base and bright (the last lit cell breathes), and the words off the fill.
+const GREEN = 0x5faf5f
+const YELLOW = 0xd7af5f
+const ORANGE = 0xd7875f
+const RED = 0xd75f5f
+const BLUE = 0x5f87af
+const TRACK = 0x3a3a3a
 const BUFFER = 0x5f0000
-const RED = 0xff5f5f
-// A meter's lamps, with the breathing last lamp read as its plain colour.
+const INK = 0x1c1c1c
 const calm = (color: number) =>
-  ({ 0xffff87: YELLOW, 0x87ff87: GREEN, 0xafd7ff: BLUE, 0xff8787: RED } as Record<number, number>)[color] ?? color
+  ({ 0x87d787: GREEN, 0xffd787: YELLOW, 0xffaf87: ORANGE, 0xff8787: RED, 0x87afd7: BLUE } as Record<number, number>)[color] ?? color
 type Test$ = Parameters<Extract<Parameters<typeof test>[1], (...args: never[]) => unknown>>[0]
 const rowOf = async ($: Test$, columns: number) =>
   (await $.ui.mount(at(columns))).find({ type: 'Raster', key: 'row' })
@@ -178,153 +178,157 @@ const lineAt = async ($: Test$, columns: number) => {
   const raster = await rowOf($, columns)
   return raster === undefined ? '' : (linesOf(String(raster.props.cells), Number(raster.props.columns))[0] ?? '')
 }
+// A row's fills, cell by cell, the breathing cell read as its plain colour.
+const fillsAt = async ($: Test$, columns: number) => {
+  const raster = await rowOf($, columns)
+  return backsOf(String(raster?.props.cells), Number(raster?.props.columns)).map(calm)
+}
+const hintOf = async ($: Test$, mount: typeof BYPASS | { [key: string]: unknown }) => {
+  const text = await (await $.ui.mount(mount as typeof BYPASS)).find({ type: 'Text' })
+  return text?.text ?? ''
+}
+const WORKING = { ...BYPASS, props: { ...BYPASS.props, isWorking: true, hint: '(shift+tab to cycle) · esc to interrupt' } } as const
+const SHELL = { ...BYPASS, props: { ...BYPASS.props, isWorking: true, hint: '1 shell · esc to interrupt · ↓ to manage' } } as const
+// Your numbers on 29 Oct: 5h at 79% with 1h 12m left, the week at 24% with 4d 6h left.
+const BUSY: SessionRateLimit[] = [
+  { kind: 'five_hour', percentUsed: 79, resetsAt: iso(NOW + HOUR + 12 * 60_000) },
+  { kind: 'seven_day', percentUsed: 24, resetsAt: iso(NOW + 4 * 24 * HOUR + 6 * HOUR) },
+]
 
-test('one row of four gauges, same parts in the same places; ctx waits as "--" for its first figure', async ($, on) => {
+test('one row of four tiles, the same parts in the same places; ctx waits as "--" for its first figure', async ($, on) => {
   const { clock } = world(on, CALM)
   await $.session.start(START)
   await $.ui.mount(BYPASS)
   const raster = await rowOf($, 180)
   expect(raster?.props.rows).toBe(1)
   await clock.advance(6000)
-  // 180 columns in bypass mode: 111 to the right of the left text; 8-cell bars and the times fit.
-  // 34% of 8 cells is 22 eighths: two full cells and ▊; 21% is 13 (█▋); 38% is 24 (███).
-  expect(await lineAt($, 180)).toBe('ctx           --         5h ██▊      34% 2h 14m  wk █▋       21%  3d 4h  fable ███      38%  3d 4h')
+  // 180 columns in bypass mode: 132 to the right of the left text; the 24-cell tiles and every
+  // time fit. ctx has no time until its first figure.
+  expect(await lineAt($, 180)).toBe(' ctx --                   5h 34%           2h14m   wk 21%            3d4h   fable 38%         3d4h')
+  // 34% of 24 cells is 8 lit, green, the words on them dark; then the track.
+  const drawn = await rowOf($, 180)
+  const cells = String(drawn?.props.cells), columns = Number(drawn?.props.columns)
+  expect(backsOf(cells, columns).slice(25, 49).map(calm)).toEqual([...Array(8).fill(GREEN), ...Array(16).fill(TRACK)])
+  expect(colorsOf(cells, columns).slice(26, 28)).toEqual([['5', INK], ['h', INK]])
 })
 
-test('the context is a gauge like the limits: tokens as its time, the track past where it compacts dark red', async ($, on) => {
+test('the context tile: its tokens for a time, the track past where it compacts dark red', async ($, on) => {
   const { clock } = world(on, CALM, {}, undefined, { tokens: 130_000, window: 200_000, threshold: 167_000 })
   await $.session.start(START)
   await $.ui.mount(BYPASS)
-  // The meters glide up while the row is on screen.
   await $.ui.mount(at(200))
   await clock.advance(6000)
-  // 200 columns: 8-cell bars. 130k of 200k: 65%, 42 eighths (█████▎), yellow (78% of the way
-  // to compacting); compaction at 83.5%: the last cell is past it.
-  const raster = await rowOf($, 200)
-  const cells = String(raster?.props.cells)
-  const columns = Number(raster?.props.columns)
-  expect(linesOf(cells, columns)[0]).toMatch(/^ctx █████▎   65%   130k  5h ██▊      34% 2h 14m  wk /)
-  const bar = colorsOf(cells, columns).slice(4, 12)
-  expect(bar.map(([glyph]) => glyph)).toEqual(['█', '█', '█', '█', '█', '▎', ' ', ' '])
-  expect(bar.slice(0, 6).map(([, color]) => calm(color))).toEqual(Array(6).fill(YELLOW))
-  expect(backsOf(cells, columns).slice(4, 12)).toEqual([AHEAD, AHEAD, AHEAD, AHEAD, AHEAD, AHEAD, AHEAD, BUFFER])
+  // 130k of 200k: 65% of 24 cells is 16 lit, yellow (78% of the way to compacting); compaction
+  // at 83.5%: the last four cells are past it.
+  expect(await lineAt($, 200)).toMatch(/^ ctx 65% +130k {3}5h /)
+  expect((await fillsAt($, 200)).slice(0, 24)).toEqual([...Array(16).fill(YELLOW), ...Array(4).fill(TRACK), ...Array(4).fill(BUFFER)])
 })
 
-test('as the window narrows the gauges shrink together, never come back, and gauges go last, calmest first', async ($, on) => {
+test('as the window narrows the tiles shrink together, then the times go, then gauges go, calmest first', async ($, on) => {
   const { clock } = world(on, CALM)
   await $.session.start(START)
   await $.ui.mount(BYPASS)
   await $.ui.mount(at(200))
   await clock.advance(6000)
   const lines: [number, string][] = []
-  for (const columns of [200, 180, 149, 124, 110, 100, 90, 80, 70]) lines.push([columns, await lineAt($, columns)])
+  for (const columns of [200, 150, 140, 125, 120, 110, 100, 90, 80, 70]) lines.push([columns, await lineAt($, columns)])
   expect(lines).toEqual([
-    [200, 'ctx           --         5h ██▊      34% 2h 14m  wk █▋       21%  3d 4h  fable ███      38%  3d 4h'],
-    [180, 'ctx           --         5h ██▊      34% 2h 14m  wk █▋       21%  3d 4h  fable ███      38%  3d 4h'],
-    [149, 'ctx     --         5h ▋  34% 2h 14m  wk ▍  21%  3d 4h  fable ▊  38%  3d 4h'],
-    [124, 'ctx     --  5h ▋  34%  wk ▍  21%  fable ▊  38%'],
-    [110, 'ctx  --  5h 34%  wk 21%  fable 38%'],
-    [100, '5h 34%  wk 21%  fable 38% +1'],
-    [90, '5h 34%  fable 38% +2'],
-    [80, 'fable 38%'],
-    // No room at all next to the left text: the engine's own footer, nothing pushed to a second row.
-    [70, ''],
+    [200, ' ctx --                   5h 34%           2h14m   wk 21%            3d4h   fable 38%         3d4h'],
+    [150, ' ctx --                   5h 34%           2h14m   wk 21%            3d4h   fable 38%         3d4h'],
+    [140, ' ctx --               5h 34%       2h14m   wk 21%        3d4h   fable 38%     3d4h'],
+    // 16-cell tiles, made 17 for Fable's words: every tile the same width.
+    [125, ' ctx --            5h 34%    2h14m   wk 21%     3d4h   fable 38%  3d4h'],
+    [120, ' ctx --            5h 34%    2h14m   wk 21%     3d4h   fable 38%  3d4h'],
+    [110, ' ctx --         5h 34% 2h14m   wk 21%  3d4h   fable 38%  3d4h'],
+    [100, ' ctx --   5h 34%   wk 21%   fable 38%'],
+    [90, ' ctx --   5h 34%   wk 21%   fable 38%'],
+    [80, ' 5h 34%   wk 21%   fable 38%  +1'],
+    [70, ' fable 38%  +3'],
   ])
 })
 
-test('never wider than the room: the row keeps one size while Claude works, and makes room for wider left text once seen', async ($, on) => {
+test('the hint: "(shift+tab to cycle)" is shortened while the row shows; a hint with pills, or no row, keeps the engine\'s', async ($, on) => {
+  world(on, BUSY)
+  await $.session.start(START)
+  expect(await hintOf($, BYPASS)).toBe('⇧tab to cycle')
+  expect(await hintOf($, WORKING)).toBe('esc to interrupt')
+  expect(await hintOf($, SHELL)).toBe('1 shell · esc to interrupt · ↓ to manage')
+  expect(await hintOf($, HINT)).toBe('? for shortcuts')
+  await $.command.run(run('off'))
+  expect(await hintOf($, BYPASS)).toBe('(shift+tab to cycle)')
+  await $.command.run(run('on'))
+  expect(await hintOf($, BYPASS)).toBe('⇧tab to cycle')
+})
+
+test('the room follows the hint shown now: one size through a turn, smaller while a shell\'s pills show, back after', async ($, on) => {
   const { clock } = world(on, CALM)
   await $.session.start(START)
   await $.ui.mount(BYPASS)
-  // The meters glide up while the row is on screen.
   await $.ui.mount(at(200))
   await clock.advance(6000)
-  const before = await lineAt($, 149)
-  // Working: the left gains "· esc to interrupt". The row was already sized for it.
-  await $.ui.mount({ ...BYPASS, props: { ...BYPASS.props, isWorking: true, hint: '(shift+tab to cycle) · esc to interrupt' } })
+  const before = await lineAt($, 140)
+  await $.ui.mount(WORKING)
   await clock.advance(1000)
-  expect(await lineAt($, 149)).toBe(before)
-  // A background task while Claude works: three columns wider than that. From then on the row
-  // takes it into account: 149 − 3 − 69 = 77 columns, still the 2-cell bars with times (74).
-  await $.ui.mount({ ...BYPASS, props: { ...BYPASS.props, hint: '1 shell · esc to interrupt · ↓ to manage' } })
+  expect(await lineAt($, 140)).toBe(before)
+  // A background shell: 140 − 3 − 69 = 68 columns; the 17-cell tiles take 71, so the snug ones.
+  await $.ui.mount(SHELL)
   await clock.advance(1000)
-  const raster = await rowOf($, 149)
-  expect(Number(raster?.props.columns)).toBeLessThanOrEqual(149 - 3 - (2 + 24 + 3 + 40))
-  for (const columns of [200, 177, 160, 149, 140, 124, 110, 100, 90, 80]) {
-    const one = await rowOf($, columns)
-    expect(Number(one?.props.columns ?? 0)).toBeLessThanOrEqual(columns - 3 - (2 + 24 + 3 + 40))
+  expect(Number((await rowOf($, 140))?.props.columns)).toBeLessThanOrEqual(140 - 3 - (2 + 24 + 3 + 40))
+  expect(await lineAt($, 140)).toBe(' ctx --         5h 34% 2h14m   wk 21%  3d4h   fable 38%  3d4h')
+  // The shell is done: the row gets its room back.
+  await $.ui.mount(BYPASS)
+  await clock.advance(1000)
+  expect(await lineAt($, 140)).toBe(before)
+})
+
+test('never wider than the room, at every width, at rest, while working and with a shell', async ($, on) => {
+  const { clock } = world(on, BUSY, {}, undefined, { tokens: 64_000, window: 200_000 })
+  await $.session.start(START)
+  await $.ui.mount(at(200))
+  await clock.advance(6000)
+  for (const [hint, left] of [[BYPASS, 2 + 24 + 3 + 16], [WORKING, 2 + 24 + 3 + 16], [SHELL, 2 + 24 + 3 + 40]] as const) {
+    await $.ui.mount(hint)
+    await clock.advance(500)
+    for (const columns of [200, 177, 160, 149, 140, 124, 120, 110, 100, 90, 80]) {
+      const one = await rowOf($, columns)
+      expect(Number(one?.props.columns ?? 0)).toBeLessThanOrEqual(columns - 3 - left)
+    }
   }
 })
 
-test('120 columns, your smallest window: all four gauges keep their bars, even with a background shell while Claude works', async ($, on) => {
-  const { clock } = world(on, CALM)
+test('120 columns, your smallest window: all four tiles keep their reset times', async ($, on) => {
+  const { clock } = world(on, BUSY, {}, undefined, { tokens: 64_000, window: 200_000 })
   await $.session.start(START)
   await $.ui.mount(BYPASS)
   await $.ui.mount(at(200))
   await clock.advance(6000)
-  // At rest: 120 − 3 − 66 = 51 columns of room; the 2-cell bars take 46.
-  expect(await lineAt($, 120)).toBe('ctx     --  5h ▋  34%  wk ▍  21%  fable ▊  38%')
-  // The widest left text Claude Code draws: 120 − 3 − 69 = 48. The row does not change.
-  await $.ui.mount({ ...BYPASS, props: { ...BYPASS.props, isWorking: true, hint: '1 shell · esc to interrupt · ↓ to manage' } })
-  await clock.advance(1000)
-  const raster = await rowOf($, 120)
-  expect(Number(raster?.props.columns)).toBe(46)
-  expect(await lineAt($, 120)).toBe('ctx     --  5h ▋  34%  wk ▍  21%  fable ▊  38%')
+  // 120 − 3 − 45 = 72 columns: the 17-cell tiles take 71.
+  expect(await lineAt($, 120)).toBe(' ctx 32%     64k   5h 79%    1h12m   wk 24%     4d6h   fable 38%  3d4h')
 })
 
-test('used up: a full bar, "max" in red in the percent\'s three columns', async ($, on) => {
+test('the colour says how full: 79% orange (it was green when the colour followed pace), 24% green', async ($, on) => {
+  const { clock } = world(on, BUSY)
+  await $.session.start(START)
+  await $.ui.mount(BYPASS)
+  await $.ui.mount(at(200))
+  await clock.advance(6000)
+  // 79% of 24 cells: 19 orange; 24%: 6 green.
+  const fills = await fillsAt($, 200)
+  expect(fills.slice(25, 49)).toEqual([...Array(19).fill(ORANGE), ...Array(5).fill(TRACK)])
+  expect(fills.slice(50, 74)).toEqual([...Array(6).fill(GREEN), ...Array(18).fill(TRACK)])
+})
+
+test('used up: "max", the whole tile red and blinking', async ($, on) => {
   const { clock } = world(on, [{ kind: 'five_hour', percentUsed: 100, resetsAt: iso(NOW + HOUR) }], {}, {
     five_hour: { utilization: 100, resets_at: iso(NOW + HOUR) },
     model_scoped: null,
   })
   await $.session.start(START)
   await $.ui.mount(BYPASS)
-  // The meter glides up while the row is on screen. Two gauges: the long bars fit at 124.
-  await $.ui.mount(at(124))
+  await $.ui.mount(at(160))
   await clock.advance(6000)
-  expect(await lineAt($, 124)).toBe('ctx           --         5h ████████ max  1h 0m')
-  const raster = await rowOf($, 124)
-  const colors = colorsOf(String(raster?.props.cells), Number(raster?.props.columns))
-  expect(colors.slice(37, 40)).toEqual([['m', RED], ['a', RED], ['x', RED]])
-})
-
-test('running fast: the gauge turns yellow, and its time says when it runs out (as previewed on 4 Oct)', async ($, on) => {
-  const { blits, clock } = world(on, FAST)
-  await $.session.start(START)
-  await $.ui.mount(BYPASS)
-  const raster = await rowOf($, 200)
-  await clock.advance(6000)
-  const cells = lastOf(blits, 'row')?.cells ?? String(raster?.props.cells)
-  const row = colorsOf(cells, Number(raster?.props.columns))
-  // The 5h gauge is the second (ctx takes 23 columns and 2 between): 80% used with half the
-  // window gone, so it runs out first: 51 eighths yellow (██████▍), one cell of dark track;
-  // out in 38m, in yellow.
-  const at5h = 23 + 2
-  expect(row.slice(at5h + 3, at5h + 10).map(([, color]) => calm(color))).toEqual(Array(7).fill(YELLOW))
-  expect(backsOf(cells, Number(raster?.props.columns))[at5h + 10]).toBe(AHEAD)
-  expect(row[at5h + 12]).toEqual(['8', YELLOW])
-  expect(linesOf(cells, Number(raster?.props.columns))[0]).toMatch(/ {2}5h ██████▍ {2}80% {4}38m {2}wk /)
-  expect(row[at5h + 19]).toEqual(['3', YELLOW])
-})
-
-test('on the track, time gone that was not used is grey and time to come dark, at every width that has bars', async ($, on) => {
-  const { clock } = world(on, CALM)
-  await $.session.start(START)
-  await $.ui.mount(BYPASS)
-  // The meters glide up while the row is on screen.
-  await $.ui.mount(at(200))
-  await clock.advance(6000)
-  // 5h (the second gauge): 34% used, 55% of the window gone. Eight cells: 2¾ lit green, the
-  // track grey to cell 4 and dark after; two cells: ▋ lit, grey under it, the second dark.
-  // ctx takes 23 columns with 8-cell bars and 17 with 2, then 2 between.
-  const eight = await rowOf($, 200)
-  const eightCells = String(eight?.props.cells), eightColumns = Number(eight?.props.columns)
-  expect(colorsOf(eightCells, eightColumns).slice(28, 31).map(([, c]) => calm(c))).toEqual([GREEN, GREEN, GREEN])
-  expect(backsOf(eightCells, eightColumns).slice(28, 36)).toEqual([SPARE, SPARE, SPARE, SPARE, AHEAD, AHEAD, AHEAD, AHEAD])
-  const two = await rowOf($, 149)
-  const twoCells = String(two?.props.cells), twoColumns = Number(two?.props.columns)
-  expect(colorsOf(twoCells, twoColumns).slice(22, 24).map(([glyph, c]) => [glyph, calm(c)])).toEqual([['▋', GREEN], [' ', 0x01000000]])
-  expect(backsOf(twoCells, twoColumns).slice(22, 24)).toEqual([SPARE, AHEAD])
+  expect(await lineAt($, 160)).toBe(' ctx --                   5h max              1h')
+  expect((await fillsAt($, 160)).slice(25, 49)).toEqual(Array(24).fill(RED))
 })
 
 test('a gauge in trouble is never the one hidden; "+n" says how many calmer ones are', async ($, on) => {
@@ -339,18 +343,19 @@ test('a gauge in trouble is never the one hidden; "+n" says how many calmer ones
   })
   await $.session.start(START)
   await $.ui.mount(BYPASS)
-  // The meters glide up while the row is on screen.
   await $.ui.mount(at(200))
   await clock.advance(6000)
-  // 90 columns: room for two, so the calm ctx goes; 80: room for one, the red 5h stays.
-  expect(await lineAt($, 90)).toBe('5h 95%  wk 21% +1')
-  expect(await lineAt($, 80)).toBe('5h 95% +2')
-  const raster = await rowOf($, 80)
+  // 80 columns: the three fit without their times. 70: room for two, so the calm ctx goes;
+  // 60: room for one, the red 5h stays.
+  expect(await lineAt($, 80)).toBe(' ctx --   5h 95%   wk 21%')
+  expect(await lineAt($, 70)).toBe(' 5h 95%   wk 21%  +1')
+  expect(await lineAt($, 60)).toBe(' 5h 95%  +2')
+  const raster = await rowOf($, 60)
   const colors = colorsOf(String(raster?.props.cells), Number(raster?.props.columns))
-  expect(colors[3]).toEqual(['9', RED])
   // The hidden ones are calm: "+2" in grey.
-  expect(colors[7]).toEqual(['+', 0x949494])
+  expect(colors.at(-2)).toEqual(['+', 0x949494])
 })
+
 
 test('frames: many while Claude works, a breath a second at rest, none asleep', async ($, on) => {
   const { blits, clock } = world(on, CALM)
@@ -377,17 +382,16 @@ test('frames: many while Claude works, a breath a second at rest, none asleep', 
   expect(blits.length).toBe(asleep)
 })
 
-test('no white in the bars at rest or while working (white is only a reply\'s new part flashing in)', async ($, on) => {
-  const { blits, clock } = world(on, FAST)
+test('no white on the fills at rest or while working (white is only a reply\'s new part flashing in)', async ($, on) => {
+  const { blits, clock } = world(on, BUSY)
   await $.session.start(START)
   await $.ui.mount(at(180))
   await $.turn.start({ text: 'go', turnId: 'turn-1' })
   await clock.advance(3000)
+  expect(blits.filter(one => one.key === 'row').length).toBeGreaterThan(4)
   for (const blit of blits.filter(one => one.key === 'row')) {
-    for (const [glyph, color] of colorsOf(blit.cells, blit.cells.length)) {
-      if (!/[█▏▎▍▌▋▊▉]/.test(glyph)) continue
-      expect(color).not.toBe(0xeeeeee)
-    }
+    const bytes = (Uint8Array as unknown as { fromBase64: (text: string) => Uint8Array }).fromBase64(blit.cells)
+    expect(backsOf(blit.cells, bytes.byteLength / 12)).not.toContain(0xeeeeee)
   }
 })
 
@@ -398,18 +402,18 @@ test('/limits off hides the row, /limits on brings it back, a retired design\'s 
   expect(store.design).toBe('off')
   expect(await (await $.ui.mount(at(180))).findAll({ type: 'Raster' })).toHaveLength(0)
   expect((await $.command.run(run(''))).text).toMatch('/limits on')
-  expect((await $.command.run(run('panel'))).text).toMatch('retired')
+  expect((await $.command.run(run('lamps'))).text).toMatch('retired')
   expect(store.design).toBe('off')
   expect((await $.command.run(run('on'))).text).toBe('Now showing the footer row.')
-  expect(store.design).toBe('lamps')
+  expect(store.design).toBe('tiles')
   expect(await (await $.ui.mount(at(180))).find({ type: 'Raster', key: 'row' })).toBeDefined()
 })
 
-test('a saved older design (Panel, LED, off) becomes Lamps once, as picked on 4 Oct', async ($, on) => {
-  const { store } = world(on, CALM, { design: 'off', built: 'panel-one-row', cache: 'context', cacheBuilt: 'context-fill' })
+test('the row switches on once when it is new: a saved Mini bars, a trial design or off becomes Bar tiles', async ($, on) => {
+  const { store } = world(on, CALM, { design: 'off', built: 'lamps-row' })
   await $.session.start(START)
-  expect(store.design).toBe('lamps')
-  expect(store.built).toBe('lamps-row')
+  expect(store.design).toBe('tiles')
+  expect(store.built).toBe('tiles-row')
   expect(await (await $.ui.mount(at(180))).find({ type: 'Raster', key: 'row' })).toBeDefined()
 })
 
@@ -419,7 +423,7 @@ test('a window past its reset time reads 0% and "new"', async ($, on) => {
     model_scoped: null,
   })
   await $.session.start(START)
-  expect(await lineAt($, 200)).toMatch(/ {2}5h {11}0% {4}new$/)
+  expect(await lineAt($, 200)).toMatch(/ 5h 0% +new$/)
 })
 
 test('on a surface without the terminal grid, the footer is the engine\'s own', async ($, on) => {
@@ -436,11 +440,11 @@ test('a window whose engine has no numbers yet shows the answer\'s 5 hours and w
   await $.ui.mount(BYPASS)
   await $.ui.mount(at(200))
   await clock.advance(6000)
-  expect(await lineAt($, 200)).toBe('ctx           --         5h ██▊      34% 2h 14m  wk █▋       21%  3d 4h  fable ███      38%  3d 4h')
+  expect(await lineAt($, 200)).toBe(' ctx --                   5h 34%           2h14m   wk 21%            3d4h   fable 38%         3d4h')
   expect(store[`usage:${ACCOUNT}`]).toBeDefined()
 })
 
-test('an account with no Fable week (model_scoped null) gets three gauges: ctx, 5h, wk', async ($, on) => {
+test('an account with no Fable week (model_scoped null) gets three tiles: ctx, 5h, wk', async ($, on) => {
   const { clock, store } = world(on, [], {}, {
     five_hour: { utilization: 0, resets_at: iso(NOW + 3 * HOUR) },
     seven_day: { utilization: 44, resets_at: iso(NOW + 4 * HOUR) },
@@ -449,7 +453,7 @@ test('an account with no Fable week (model_scoped null) gets three gauges: ctx, 
   await $.session.start(START)
   await $.ui.mount(at(200))
   await clock.advance(6000)
-  expect(await lineAt($, 200)).toBe('ctx           --         5h           0%  3h 0m  wk ███▌     44%  4h 0m')
+  expect(await lineAt($, 200)).toBe(' ctx --                   5h 0%               3h   wk 44%              4h')
   expect(Object.keys(store).filter(key => key.startsWith('usage:'))).toEqual([`usage:${Math.round((NOW + 4 * HOUR) / 60_000)}`])
 })
 
@@ -462,7 +466,7 @@ test('Fable: every window shares one reading; a fresh one is used as it is, an o
   expect(asks.count).toBe(0)
   await $.ui.mount(at(200))
   await clock.advance(6000)
-  expect(await lineAt($, 200)).toMatch(/fable ███▎ {5}41%/)
+  expect(await lineAt($, 200)).toMatch(/ fable 41% +3d4h$/)
   expect(asks.count).toBe(0)
 
   // Three minutes after that reading it is old: one window asks, and stores the answer for the rest.
@@ -498,3 +502,4 @@ test('Fable: a reading filed under another account is not taken; this account as
   const own = store[`usage:${ACCOUNT}`] as { limits: { label?: string; percentUsed: number }[] }
   expect(own.limits.find(limit => limit.label === 'fable')?.percentUsed).toBe(38)
 })
+

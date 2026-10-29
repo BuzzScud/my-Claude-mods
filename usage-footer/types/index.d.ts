@@ -7,7 +7,7 @@ declare module 'claude-code' {
   interface PluginState {
     'usage-footer': {
       reading: Reading
-      /** "lamps" or "off"; an older design's name (panel, led…) or a number reads as "lamps". */
+      /** "tiles" or "off"; an older design's name (lamps, panel, led…) or a number reads as "tiles". */
       design: string | number
       now: number
       /** The usage answer from Claude Code's own usage request: a model's own week (Fable), and the 5 hours and week until the engine has its own. */
